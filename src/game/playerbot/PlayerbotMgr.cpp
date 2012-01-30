@@ -1,4 +1,5 @@
 #include "Config/Config.h"
+#include "config.h"
 #include "../Player.h"
 #include "PlayerbotAI.h"
 #include "PlayerbotMgr.h"
