@@ -722,7 +722,9 @@ void PlayerbotAI::SendOrders(Player& /*player*/)
     else if (m_combatOrder & ORDERS_ASSIST)
         out << "I ASSIST " << (m_targetAssist ? m_targetAssist->GetName() : "unknown");
     else if (m_combatOrder & ORDERS_HEAL)
-        out << "I HEAL";
+        out << "I HEAL and DISPEL";
+    else if (m_combatOrder & ORDERS_NODISPEL)
+        out << "I HEAL and WON'T DISPEL";
     else if (m_combatOrder & ORDERS_PASSIVE)
         out << "I'M PASSIVE";
     if ((m_combatOrder & ORDERS_PRIMARY) && (m_combatOrder & ORDERS_SECONDARY))
@@ -3083,6 +3085,7 @@ void PlayerbotAI::SetCombatOrderByStr(std::string str, Unit *target)
     else if (str == "assist") co = ORDERS_ASSIST;
     else if (str == "heal") co = ORDERS_HEAL;
     else if (str == "protect") co = ORDERS_PROTECT;
+    else if (str == "nodispel") co = ORDERS_NODISPEL;
     else if (str == "passive") co = ORDERS_PASSIVE;
     else
         co = ORDERS_RESET;

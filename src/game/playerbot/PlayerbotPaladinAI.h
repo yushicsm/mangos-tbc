@@ -130,7 +130,15 @@ private:
            LAY_ON_HANDS,
            EXORCISM,
            REDEMPTION,
-           DIVINE_PLEA;
+           DIVINE_PLEA,
+           SEAL_OF_CORRUPTION,
+           SEAL_OF_JUSTICE,
+           SEAL_OF_LIGHT,
+           SEAL_OF_RIGHTEOUSNESS,
+           SEAL_OF_VENGEANCE,
+           SEAL_OF_WISDOM,
+           PURIFY,
+           CLEANSE;
 
     // Protection
     uint32 GREATER_BLESSING_OF_KINGS,
