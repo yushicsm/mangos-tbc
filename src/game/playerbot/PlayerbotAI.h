@@ -103,9 +103,19 @@ public:
         ORDERS_NODISPEL             = 0x08,
         ORDERS_PROTECT              = 0x10,             // combinable state: check if protectee is attacked
         ORDERS_PASSIVE              = 0x20,             // bots do nothing
+        ORDERS_RESIST               = 0x40,             // resist a magic school(see below for types)
         ORDERS_PRIMARY              = 0x0F,
         ORDERS_SECONDARY            = 0xF0,
         ORDERS_RESET                = 0xFF
+    };
+
+    enum ResistType
+    {
+        SCHOOL_NONE     = 0,
+        SCHOOL_FIRE     = 1,
+        SCHOOL_NATURE   = 2,
+        SCHOOL_FROST    = 3,
+        SCHOOL_SHADOW   = 4
     };
 
     enum CombatTargetType
@@ -368,17 +378,23 @@ public:
     //void Stay();
     //bool Follow(Player& player);
     void SendNotEquipList(Player& player);
-	uint32 AutoEquipPlug;               //switch for autoequip
-	uint32 SellWhite;					//switch for white item auto sell
-	uint8 DistOverRide;
-	float gDist[2]; //gDist, gTemp vars are used for variable follow distance
-	float gTempDist;
-	float gTempDist2;
-	uint8 IsUpOrDown; //tracks variable follow distance
-	void _HandleCommandAutoEquip(std::string &text, Player &fromPlayer);
-	void AutoUpgradeEquipment(Player& player);
-	void AutoEquipComparison(Item *pItem, Item *pItem2);
-	bool ItemStatComparison(const ItemPrototype *pProto, const ItemPrototype *pProto2);
+    uint32 AutoCrafting; //switch for bot auto tradeskills
+    uint32 AutoCraftClass;
+    uint32 AutoCraftCategory;
+    uint32 AutoEquipPlug;               //switch for autoequip
+    uint32 SellWhite;					//switch for white item auto sell
+    uint8 DistOverRide;
+    float gDist[2]; //gDist, gTemp vars are used for variable follow distance
+    float gTempDist;
+    float gTempDist2;
+    uint8 IsUpOrDown; //tracks variable follow distance
+    void _HandleCommandAutoEquip(std::string &text, Player &fromPlayer);
+    void _HandleCommandAutoInventoryCheck(std::string &text, Player &fromPlayer);
+    void AutoUpgradeEquipment(Player& player);
+    void AutoInventoryCheck(Player& player);
+    void AutoEquipComparison(Item *pItem, Item *pItem2);
+    void AutoCraft(Player& player);
+    bool ItemStatComparison(const ItemPrototype *pProto, const ItemPrototype *pProto2);
     void Feast();
     void InterruptCurrentCastingSpell();
     void GetCombatTarget(Unit* forcedTarged = 0);
@@ -428,6 +444,7 @@ public:
     void SetCombatOrderByStr(std::string str, Unit *target = 0);
     void SetCombatOrder(CombatOrderType co, Unit *target = 0);
     CombatOrderType GetCombatOrder() { return this->m_combatOrder; }
+    ResistType GetResistType() { return this->m_resistType; }
     void SetMovementOrder(MovementOrderType mo, Unit *followTarget = 0);
     MovementOrderType GetMovementOrder() { return this->m_movementOrder; }
     void MovementReset();
@@ -518,6 +535,7 @@ private:
 
     CombatStyle m_combatStyle;
     CombatOrderType m_combatOrder;
+    ResistType m_resistType;
     MovementOrderType m_movementOrder;
 
     ScenarioType m_ScenarioType;
@@ -571,10 +589,10 @@ private:
     Unit *m_followTarget;       // whom to follow in non combat situation?
 
     uint32 FISHING,
-           HERB_GATHERING,
-           MINING,
-           SKINNING,
-           ASPECT_OF_THE_MONKEY;
+        HERB_GATHERING,
+        MINING,
+        SKINNING,
+        ASPECT_OF_THE_MONKEY;
 
     SpellRanges m_spellRangeMap;
 
