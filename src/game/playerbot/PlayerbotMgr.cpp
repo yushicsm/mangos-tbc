@@ -116,7 +116,6 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
             p >> guid >> node_count;
 
             std::vector<uint32> nodes;
-
             for (uint32 i = 0; i < node_count; ++i)
             {
                 uint32 node;
@@ -136,11 +135,10 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
                 Player* const bot = it->second;
                 if (!bot)
                     return;
-
+                bot->GetPlayerbotAI()->FollowAutoReset(*bot);
                 Group* group = bot->GetGroup();
                 if (!group)
                     continue;
-                bot->GetPlayerbotAI()->FollowAutoReset(*bot);
                 Unit *target = ObjectAccessor::GetUnit(*bot, guid);
 
                 bot->GetPlayerbotAI()->SetIgnoreUpdateTime(delay);
@@ -621,13 +619,13 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
             {
                 Player* const bot = it->second;
                 if (!bot)
-                    return;
+                    continue;
                 bot->GetPlayerbotAI()->FollowAutoReset(*bot);
                 Creature *pCreature = bot->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_NONE);
                 if (!pCreature)
                 {
                     DEBUG_LOG ("[PlayerbotMgr]: HandleMasterIncomingPacket - Received  CMSG_GOSSIP_HELLO %s not found or you can't interact with him.", guid.GetString().c_str());
-                    return;
+                    continue;
                 }
 
                 GossipMenuItemsMapBounds pMenuItemBounds = sObjectMgr.GetGossipMenuItemsMapBounds(pCreature->GetCreatureInfo()->GossipMenuId);
@@ -656,7 +654,7 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
                         {
                             // bot->GetPlayerbotAI()->TellMaster("PlayerbotMgr:GOSSIP_OPTION_VENDOR");
                             if (!botConfig.GetBoolDefault("PlayerbotAI.SellGarbage", true))
-                                return;
+                                continue;
 
                             // changed the SellGarbage() function to support ch.SendSysMessaage()
                             bot->GetPlayerbotAI()->SellGarbage(*bot);
