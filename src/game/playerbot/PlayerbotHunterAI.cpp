@@ -152,13 +152,13 @@ void PlayerbotHunterAI::DoNextCombatManeuver(Unit *pTarget)
         // check if we have monkey aspect in melee combat
         (ASPECT_OF_THE_MONKEY > 0 && ai->CastSpell(ASPECT_OF_THE_MONKEY, *m_bot));
 
-    // activate auto shot
-    if (AUTO_SHOT > 0 && m_rangedCombat && !m_bot->FindCurrentSpellBySpellId(AUTO_SHOT))
-        ai->CastSpell(AUTO_SHOT, *pTarget);
-    //ai->TellMaster( "started auto shot." );
-    else if (AUTO_SHOT > 0 && m_bot->FindCurrentSpellBySpellId(AUTO_SHOT))
-        m_bot->InterruptNonMeleeSpells(true, AUTO_SHOT);
-    //ai->TellMaster( "stopped auto shot." );
+    // activate auto shot: Reworked to account for AUTO_SHOT being a triggered spell
+    if (AUTO_SHOT > 0 && m_rangedCombat && ai->GetCurrentSpellId() != AUTO_SHOT)
+    {
+        m_bot->CastSpell(pTarget, AUTO_SHOT, true);
+        ai->SetIgnoreUpdateTime(2);
+        //ai->TellMaster( "started auto shot." );
+    }
 
     // damage spells
     std::ostringstream out;

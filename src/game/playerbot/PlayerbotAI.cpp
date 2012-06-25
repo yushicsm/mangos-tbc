@@ -4066,11 +4066,6 @@ void PlayerbotAI::MovementReset()
             DoTeleport(*m_followTarget);
             return;
         }
-        if (m_bot->GetPositionZ() > (pTarget->GetPositionZ() + INTERACTION_DISTANCE) || (m_bot->GetPositionZ() + INTERACTION_DISTANCE) < pTarget->GetPositionZ())
-        {
-            DoTeleport(*m_followTarget);
-            return;
-        }
 
         if (m_bot->isAlive() && !m_bot->IsBeingTeleported())
         {
@@ -4507,8 +4502,6 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
             m_lootTargets.unique();
         else
             m_lootTargets.clear();
-
-        return SetIgnoreUpdateTime(0); // Was set at the start of UpdateAI, make sure we don't unnecessarily wait
     }
 
     if (m_botState == BOTSTATE_LOOTING)
