@@ -383,7 +383,7 @@ void PlayerbotAI::SendNotEquipList(Player& /*player*/)
             continue;
 
         uint16 dest;
-        uint8 msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
+        InventoryResult msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
         if (msg != EQUIP_ERR_OK)
             continue;
 
@@ -413,7 +413,7 @@ void PlayerbotAI::SendNotEquipList(Player& /*player*/)
                     continue;
 
                 uint16 dest;
-                uint8 msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
+                InventoryResult msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
                 if (msg != EQUIP_ERR_OK)
                     continue;
 
@@ -530,11 +530,8 @@ void PlayerbotAI::AutoUpgradeEquipment(Player& /*player*/) // test for autoequip
         }
 
         uint16 equipSlot;
-        uint8 msg = m_bot->CanEquipItem(NULL_SLOT, equipSlot, pItem, !pItem->IsBag());
+        InventoryResult msg = m_bot->CanEquipItem(NULL_SLOT, equipSlot, pItem, !pItem->IsBag());
         if (msg != EQUIP_ERR_OK)
-            continue;
-
-        if (equipSlot >= EQUIPMENT_SLOT_END) // uint can't be less than EQUIPMENT_SLOT_START = 0
             continue;
 
         // do we have anything equipped of this type?
@@ -567,14 +564,11 @@ void PlayerbotAI::AutoUpgradeEquipment(Player& /*player*/) // test for autoequip
                     continue;
 
                 uint16 dest;
-                uint8 msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
+                InventoryResult msg = m_bot->CanEquipItem(NULL_SLOT, dest, pItem, !pItem->IsBag());
                 if (msg != EQUIP_ERR_OK)
                     continue;
 
-                int8 equipSlot = uint8(dest);
-                if (!(equipSlot >= EQUIPMENT_SLOT_START && equipSlot < EQUIPMENT_SLOT_END))
-                    continue;
-
+                uint8 equipSlot = uint8(dest);
                 Item* const pItem2 = m_bot->GetItemByPos(INVENTORY_SLOT_BAG_0, equipSlot); // do we have anything equipped of this type?
                 if (!pItem2)
                 {
@@ -596,6 +590,7 @@ void PlayerbotAI::AutoUpgradeEquipment(Player& /*player*/) // test for autoequip
 
     InspectUpdate();
 }
+
 void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
 {
     const static uint32 item_armor_skills[MAX_ITEM_SUBCLASS_ARMOR] =
@@ -620,18 +615,6 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
         }
     case ITEM_CLASS_ARMOR:
         {
-            if (pProto->ItemLevel < pProto2->ItemLevel && pProto->Armor <= pProto2->Armor && m_bot->HasSkill(item_armor_skills[pProto2->SubClass]) &&
-                !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
-            {
-                // First check to see if this item has stats, and if the bot REALLY wants to lose its old item
-                if (pProto2->StatsCount > 0)
-                {
-                    if (!ItemStatComparison(pProto, pProto2))
-                        return; // stats on equipped item are better, OR stats are not useful for this bots class/style
-                }
-                EquipItem(pItem);
-                break;
-            }
             // now in case they are same itemlevel, but one is better than the other..
             if (pProto->ItemLevel == pProto2->ItemLevel && pProto->Quality < pProto2->Quality && pProto->Armor <= pProto2->Armor &&
                 m_bot->HasSkill(item_armor_skills[pProto2->SubClass]) && !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
@@ -657,10 +640,23 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
                 EquipItem(pItem);
                 break;
             }
+            if (pProto->ItemLevel <= pProto2->ItemLevel && pProto->Armor <= pProto2->Armor && m_bot->HasSkill(item_armor_skills[pProto2->SubClass]) &&
+                !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
+            {
+                // First check to see if this item has stats, and if the bot REALLY wants to lose its old item
+                if (pProto2->StatsCount > 0)
+                {
+                    if (!ItemStatComparison(pProto, pProto2))
+                        return; // stats on equipped item are better, OR stats are not useful for this bots class/style
+                }
+                EquipItem(pItem);
+                break;
+            }
         }
     }
     InspectUpdate();
 }
+
 bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemPrototype *pProto2)
 {
     uint8 isclass = 0; // 1= caster 2 = hybrid 3 = melee
