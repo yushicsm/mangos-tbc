@@ -4637,7 +4637,7 @@ bool PlayerbotAI::CastSpell(uint32 spellId)
         if (pTarget && m_bot->IsFriendlyTo(pTarget))
             return false;
 
-        m_bot->SetFacingTo(m_bot->GetAngle(pTarget));
+        m_bot->SetInFront(pTarget);
     }
 
     float CastTime = 0.0f;
