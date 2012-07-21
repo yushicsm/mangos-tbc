@@ -74,6 +74,13 @@ enum NotableItems
     ELEMENTAL_SEAFORIUM_CHARGE = 23819
 };
 
+enum AutoEquipEnum
+{
+    AUTOEQUIP_OFF  = 0,
+    AUTOEQUIP_ON   = 1,
+    AUTOEQUIP_ONCE = 2
+};
+
 class MANGOS_DLL_SPEC PlayerbotAI
 {
 public:
@@ -398,7 +405,7 @@ public:
     void CombatDelayRestore();
     void CombatOrderRestore();
     void _HandleCommandAutoEquip(std::string &text, Player &fromPlayer);
-    void AutoUpgradeEquipment(Player& player);
+    void AutoUpgradeEquipment();
     void FollowAutoReset(Player& player);
     void AutoEquipComparison(Item *pItem, Item *pItem2);
     bool ItemStatComparison(const ItemPrototype *pProto, const ItemPrototype *pProto2);
