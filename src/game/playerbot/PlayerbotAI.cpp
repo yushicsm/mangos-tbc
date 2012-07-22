@@ -63,7 +63,8 @@ m_TimeDoneEating(0), m_TimeDoneDrinking(0),
 m_CurrentlyCastingSpellId(0), m_spellIdCommand(0),
 m_targetGuidCommand(ObjectGuid()),
 m_taxiMaster(ObjectGuid()),
-m_AutoEquipToggle(false)
+m_AutoEquipToggle(false),
+m_bDebugCommandChat(false)
 {
     // set bot state
     m_botState = BOTSTATE_NORMAL;
@@ -7062,7 +7063,11 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
     m_tasks.unique();
     m_findNPC.unique();
 
-    // DEBUG_LOG("chat(%s)",text.c_str());
+    if (m_bDebugCommandChat)
+    {
+        DEBUG_LOG("chat(%s)",text.c_str());
+        TellMaster(text);
+    }
 
     // ignore any messages from Addons
     if (text.empty() ||
@@ -9684,6 +9689,14 @@ void PlayerbotAI::_HandleCommandGM(std::string &text, Player &fromPlayer)
         else
             SendWhisper("'gm target' does not have that subcommand.", fromPlayer);
     }
+    else if (ExtractCommand("chat", text))
+    {
+        m_bDebugCommandChat = !m_bDebugCommandChat;
+        if (m_bDebugCommandChat)
+            SendWhisper("Bots will now output all commands received.", fromPlayer);
+        else
+            SendWhisper("Bots will no longer output commands received.", fromPlayer);
+    }
     else
         SendWhisper("'gm' does not have that subcommand.", fromPlayer);
 }
@@ -10109,6 +10122,7 @@ void PlayerbotAI::_HandleCommandHelp(std::string &text, Player &fromPlayer)
         if (!bMainHelp)
         {
             ch.SendSysMessage(_HandleCommandHelpHelper("gm target", "Lists target items that can be monitored.").c_str());
+            ch.SendSysMessage(_HandleCommandHelpHelper("gm chat", "Outputs all commands the bot receives - including those it feels it can't obey.").c_str());
 
             // Catches all valid subcommands, also placeholders for potential future sub-subcommands
             if (ExtractCommand("target", text))
@@ -10116,6 +10130,7 @@ void PlayerbotAI::_HandleCommandHelp(std::string &text, Player &fromPlayer)
                 ch.SendSysMessage(_HandleCommandHelpHelper("gm target combat", "Lists current attacking targets.").c_str());
                 ch.SendSysMessage(_HandleCommandHelpHelper("gm target loot", "Lists current lootable targets.").c_str());
             }
+            if (ExtractCommand("chat", text)) {}
 
             if (text != "") ch.SendSysMessage(sInvalidSubcommand.c_str());
             return;
