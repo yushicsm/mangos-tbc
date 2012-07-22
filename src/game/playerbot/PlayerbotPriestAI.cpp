@@ -128,12 +128,20 @@ void PlayerbotPriestAI::DoNextCombatManeuver(Unit *pTarget)
     }
 
     // ------- Non Duel combat ----------
+    float dist = m_bot->GetCombatDistance(pTarget);
+
+    if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED && dist > ATTACK_DISTANCE)
+        ai->SetCombatStyle(PlayerbotAI::COMBAT_RANGED);
+    // if in melee range OR can't shoot OR have no ranged (wand) equipped
+    else if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_MELEE 
+            && (/*dist <= ATTACK_DISTANCE || */SHOOT == 0 || !m_bot->GetWeaponForAttack(RANGED_ATTACK, true, true))
+            && !ai->IsHealer())
+        ai->SetCombatStyle(PlayerbotAI::COMBAT_MELEE);
 
     ai->SetMovementOrder(PlayerbotAI::MOVEMENT_FOLLOW, GetMaster());   // dont want to melee mob
 
     Player *m_bot = GetPlayerBot();
     Group *m_group = m_bot->GetGroup();
-    float dist = m_bot->GetCombatDistance(pTarget);
 
     if (dist > ATTACK_DISTANCE && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
     {
