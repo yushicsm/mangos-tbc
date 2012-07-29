@@ -416,7 +416,7 @@ void PlayerbotAI::SendNotEquipList(Player& /*player*/)
     }
 }
 
-void PlayerbotAI::FollowAutoReset(Player& /*player*/)
+void PlayerbotAI::FollowAutoReset()
 {
     if (m_FollowAutoGo != FOLLOWAUTOGO_OFF)
     {
@@ -5776,7 +5776,7 @@ void PlayerbotAI::findNearbyCreature()
     cell.Visit(pair, go_visit, *(m_bot->GetMap()), *(m_bot), radius);
 
     // if (!creatureList.empty())
-    //    TellMaster("Found %i Creatures.", creatureList.size());
+    //    TellMaster("Found %i Creatures & size of m_findNPC (%i)", creatureList.size(),m_findNPC.size());
 
     for (std::list<Creature*>::iterator iter = creatureList.begin(); iter != creatureList.end(); iter++)
     {
@@ -7572,6 +7572,7 @@ void PlayerbotAI::_HandleCommandCast(std::string &text, Player &fromPlayer)
 // sell [Item Link][Item Link] .. -- Sells bot(s) items from inventory
 void PlayerbotAI::_HandleCommandSell(std::string &text, Player &fromPlayer)
 {
+    FollowAutoReset();
     if (ExtractCommand("all", text)) // switch to auto sell low level white items
     {
         std::ostringstream msg;
@@ -7660,6 +7661,7 @@ void PlayerbotAI::_HandleCommandDrop(std::string &text, Player &fromPlayer)
 // repair [Item Link][Item Link] .. -- repair select bot(s) items
 void PlayerbotAI::_HandleCommandRepair(std::string &text, Player &fromPlayer)
 {
+    FollowAutoReset();
     if (ExtractCommand("all", text))
     {
         if (text != "")
@@ -7688,8 +7690,7 @@ void PlayerbotAI::_HandleCommandRepair(std::string &text, Player &fromPlayer)
 // auction remove [Auction Link][Auction Link] .. -- Cancel bot(s) active auction. ([Auction Link] from auction)
 void PlayerbotAI::_HandleCommandAuction(std::string &text, Player &fromPlayer)
 {
-    Player* const bot = GetPlayerBot();
-    FollowAutoReset(*bot);
+    FollowAutoReset();
     if (text == "")
     {
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(LIST_AUCTION, 0));
@@ -8048,8 +8049,7 @@ void PlayerbotAI::_HandleCommandMail(std::string &text, Player &fromPlayer)
 // bank withdraw [Item Link][Item Link] ..     -- Withdraw item(s) from bank. ([Item Link] from bank)
 void PlayerbotAI::_HandleCommandBank(std::string &text, Player &fromPlayer)
 {
-    Player* const bot = GetPlayerBot();
-    FollowAutoReset(*bot);
+    FollowAutoReset();
     if (text == "")
     {
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(BANK_BALANCE, 0));
@@ -8234,6 +8234,7 @@ void PlayerbotAI::_HandleCommandTalent(std::string &text, Player &fromPlayer)
     }
     else if (ExtractCommand("reset", text))
     {
+        FollowAutoReset();
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(RESET_TALENTS, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_TRAINER);
     }
@@ -8888,11 +8889,10 @@ void PlayerbotAI::_HandleCommandCraft(std::string &text, Player &fromPlayer)
 void PlayerbotAI::_HandleCommandQuest(std::string &text, Player &fromPlayer)
 {
     std::ostringstream msg;
-    Player* const bot = GetPlayerBot();
-    FollowAutoReset(*bot);
 
     if (ExtractCommand("add", text, true)) // true -> "quest add" OR "quest a"
     {
+        FollowAutoReset();
         std::list<uint32> questIds;
         extractQuestIds(text, questIds);
         for (std::list<uint32>::iterator it = questIds.begin(); it != questIds.end(); it++)
@@ -8917,12 +8917,14 @@ void PlayerbotAI::_HandleCommandQuest(std::string &text, Player &fromPlayer)
     }
     else if (ExtractCommand("fetch", text, true)) // true -> "quest fetch"
     {
+        FollowAutoReset();
         gQuestFetch = 1;
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(LIST_QUEST, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_QUESTGIVER);
     }
     else if (ExtractCommand("list", text, true)) // true -> "quest list" OR "quest l"
     {
+        FollowAutoReset();
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(LIST_QUEST, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_QUESTGIVER);
     }
@@ -8932,6 +8934,7 @@ void PlayerbotAI::_HandleCommandQuest(std::string &text, Player &fromPlayer)
     }
     else if (ExtractCommand("end", text, true)) // true -> "quest end" OR "quest e"
     {
+        FollowAutoReset();
         m_tasks.push_back(std::pair<enum TaskFlags, uint32>(END_QUEST, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_QUESTGIVER);
     }
@@ -9310,8 +9313,6 @@ void PlayerbotAI::_HandleCommandSkill(std::string &text, Player &fromPlayer)
     uint32 rank[8] = {0, 75, 150, 225, 300, 375, 450, 525};
 
     std::ostringstream msg;
-    Player* const bot = GetPlayerBot();
-    FollowAutoReset(*bot);
     if (ExtractCommand("learn", text))
     {
         uint32 totalCost = 0;
