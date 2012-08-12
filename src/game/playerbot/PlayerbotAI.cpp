@@ -7188,9 +7188,6 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
     else if (ExtractCommand("equip", input, true)) // true -> "equip" OR "e"
         _HandleCommandEquip(input, fromPlayer);
 
-    else if (ExtractCommand("resumeorders", input)) // restore previous combat orders if any
-        CombatOrderRestore();
-
     // find project: 20:50 02/12/10 rev.4 item in world and wait until ordered to follow
     else if (ExtractCommand("find", input, true)) // true -> "find" OR "f"
         _HandleCommandFind(input, fromPlayer);
@@ -7351,11 +7348,6 @@ void PlayerbotAI::_HandleCommandReset(std::string &text, Player &fromPlayer)
     m_targetCombat = 0;
 }
 
-void PlayerbotAI::_HandleCommandCombat(std::string &text, Player &fromPlayer)
-{
-    return;
-}
-
 void PlayerbotAI::_HandleCommandOrders(std::string &text, Player &fromPlayer)
 {
     if (text == "")
@@ -7375,6 +7367,8 @@ void PlayerbotAI::_HandleCommandOrders(std::string &text, Player &fromPlayer)
             TellMaster("Invalid delay. choose a number between 0 and 10");
         return;
     }
+    else if (ExtractCommand("resumeorders", text))
+        CombatOrderRestore();
     else if (text != "")
     {
         SendWhisper("See help for details on using 'orders'.", fromPlayer);
@@ -9968,6 +9962,13 @@ void PlayerbotAI::_HandleCommandHelp(std::string &text, Player &fromPlayer)
 
         if (!bMainHelp)
         {
+            ch.SendSysMessage(_HandleCommandHelpHelper("orders delay <0-10>", "Activates a delay before I start fighting.").c_str());
+            ch.SendSysMessage(_HandleCommandHelpHelper("orders resume", "Resume combat orders to what they were before logout.").c_str());
+
+            // Catches all valid subcommands, also placeholders for potential future sub-subcommands
+            if (ExtractCommand("delay", text, true)) {}
+            else if (ExtractCommand("resume", text, true)) {}
+
             if (text != "") ch.SendSysMessage(sInvalidSubcommand.c_str());
             return;
         }
