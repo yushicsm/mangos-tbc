@@ -140,10 +140,12 @@ void PlayerbotPaladinAI::DoNextCombatManeuver(Unit *pTarget)
 
     switch (ai->GetScenarioType())
     {
-        case PlayerbotAI::SCENARIO_DUEL:
+        case PlayerbotAI::SCENARIO_PVP_DUEL:
             if (HAMMER_OF_JUSTICE > 0)
                 ai->CastSpell(HAMMER_OF_JUSTICE);
             return;
+        default:
+            break;
     }
 
     // damage spells

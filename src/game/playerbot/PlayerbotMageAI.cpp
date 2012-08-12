@@ -74,7 +74,7 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
 
     switch (ai->GetScenarioType())
     {
-        case PlayerbotAI::SCENARIO_DUEL:
+        case PlayerbotAI::SCENARIO_PVP_DUEL:
             if (FIREBALL > 0)
                 ai->CastSpell(FIREBALL);
             return;

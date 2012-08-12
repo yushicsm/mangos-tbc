@@ -91,7 +91,7 @@ void PlayerbotRogueAI::DoNextCombatManeuver(Unit *pTarget)
 
     switch (ai->GetScenarioType())
     {
-        case PlayerbotAI::SCENARIO_DUEL:
+        case PlayerbotAI::SCENARIO_PVP_DUEL:
         {
             if (SINISTER_STRIKE > 0)
                 ai->CastSpell(SINISTER_STRIKE);

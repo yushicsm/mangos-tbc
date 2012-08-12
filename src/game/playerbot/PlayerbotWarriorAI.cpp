@@ -131,10 +131,12 @@ void PlayerbotWarriorAI::DoNextCombatManeuver(Unit *pTarget)
 
     switch (ai->GetScenarioType())
     {
-        case PlayerbotAI::SCENARIO_DUEL:
+        case PlayerbotAI::SCENARIO_PVP_DUEL:
             if (HEROIC_STRIKE > 0)
                 ai->CastSpell(HEROIC_STRIKE);
             return;
+        default:
+            break;
     }
     // ------- Non Duel combat ----------
 

@@ -116,15 +116,17 @@ void PlayerbotPriestAI::DoNextCombatManeuver(Unit *pTarget)
 
     switch (ai->GetScenarioType())
     {
-        case PlayerbotAI::SCENARIO_DUEL:
+        case PlayerbotAI::SCENARIO_PVP_DUEL:
             (ai->HasAura(SCREAM, *pTarget) && ai->GetHealthPercent() < 60 && ai->CastSpell(HEAL)) ||
             ai->CastSpell(SHADOW_WORD_PAIN) ||
             (ai->GetHealthPercent() < 80 && ai->CastSpell(RENEW)) ||
             (ai->GetPlayerBot()->GetDistance(pTarget) <= 5 && ai->CastSpell(SCREAM)) ||
             ai->CastSpell(MIND_BLAST) ||
-            (ai->GetHealthPercent() < 20 && ai->CastSpell(GREATER_HEAL)) ||
+            (ai->GetHealthPercent() < 50 && ai->CastSpell(GREATER_HEAL)) ||
             ai->CastSpell(SMITE);
             return;
+        default:
+            break;
     }
 
     // ------- Non Duel combat ----------
