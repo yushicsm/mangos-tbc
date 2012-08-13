@@ -116,11 +116,7 @@ PlayerbotAI::PlayerbotAI(PlayerbotMgr* const mgr, Player* const bot) :
             m_classAI = (PlayerbotClassAI *) new PlayerbotWarriorAI(GetMaster(), m_bot, this);
             break;
         case CLASS_SHAMAN:
-			if (m_bot->GetStat(STAT_AGILITY) > m_bot->GetStat(STAT_INTELLECT) || m_bot->GetStat(STAT_STRENGTH) > m_bot->GetStat(STAT_INTELLECT)) {
-				m_combatStyle = COMBAT_MELEE;
-				}
-			else
-				m_combatStyle = COMBAT_RANGED;
+            m_combatStyle = COMBAT_MELEE;
             m_classAI = (PlayerbotClassAI *) new PlayerbotShamanAI(GetMaster(), m_bot, this);
             break;
         case CLASS_PALADIN:
@@ -132,11 +128,7 @@ PlayerbotAI::PlayerbotAI(PlayerbotMgr* const mgr, Player* const bot) :
             m_classAI = (PlayerbotClassAI *) new PlayerbotRogueAI(GetMaster(), m_bot, this);
             break;
         case CLASS_DRUID:
-            if (m_bot->GetStat(STAT_AGILITY) > m_bot->GetStat(STAT_INTELLECT) || m_bot->GetStat(STAT_STRENGTH) > m_bot->GetStat(STAT_INTELLECT)) {
-				m_combatStyle = COMBAT_MELEE;
-				}
-			else
-				m_combatStyle = COMBAT_RANGED;
+            m_combatStyle = COMBAT_MELEE;
             m_classAI = (PlayerbotClassAI *) new PlayerbotDruidAI(GetMaster(), m_bot, this);
             break;
         case CLASS_HUNTER:
@@ -693,11 +685,7 @@ void PlayerbotAI::ReloadAI()
             break;
         case CLASS_SHAMAN:
             if (m_classAI) delete m_classAI;
-            if (m_bot->GetStat(STAT_AGILITY) > m_bot->GetStat(STAT_INTELLECT) || m_bot->GetStat(STAT_STRENGTH) > m_bot->GetStat(STAT_INTELLECT)) {
-				m_combatStyle = COMBAT_MELEE;
-				}
-			else
-				m_combatStyle = COMBAT_RANGED;
+            m_combatStyle = COMBAT_MELEE;
             m_classAI = (PlayerbotClassAI *) new PlayerbotShamanAI(GetMaster(), m_bot, this);
             break;
         case CLASS_PALADIN:
@@ -712,11 +700,7 @@ void PlayerbotAI::ReloadAI()
             break;
         case CLASS_DRUID:
             if (m_classAI) delete m_classAI;
-            if (m_bot->GetStat(STAT_AGILITY) > m_bot->GetStat(STAT_INTELLECT) || m_bot->GetStat(STAT_STRENGTH) > m_bot->GetStat(STAT_INTELLECT)) {
-				m_combatStyle = COMBAT_MELEE;
-				}
-			else
-				m_combatStyle = COMBAT_RANGED;
+            m_combatStyle = COMBAT_MELEE;
             m_classAI = (PlayerbotClassAI *) new PlayerbotDruidAI(GetMaster(), m_bot, this);
             break;
         case CLASS_HUNTER:
