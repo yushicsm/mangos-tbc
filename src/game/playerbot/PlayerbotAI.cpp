@@ -931,6 +931,11 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
                     out << "|cff1eff00|h" << action[Action] << " was successful|h|r";
                     break;
                 }
+                case AUCTION_ERR_INVENTORY:
+                {
+                    out << "|cffff0000|h Item cannot be auctioned|h|r";
+                    break;
+                }
                 case AUCTION_ERR_DATABASE:
                 {
                     out << "|cffff0000|hWhile" << action[Action] << ", an internal error occured|h|r";
@@ -951,6 +956,8 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
                     out << "|cffff0000|hI cannot bid on my own auctions!|h|r";
                     break;
                 }
+                default:
+                    out << "|cffff0000|hAuction Error code (" << ErrorCode << ")|h|r";
             }
             TellMaster(out.str().c_str());
             return;
@@ -2259,6 +2266,7 @@ void PlayerbotAI::SetQuestNeedItems()
 {
     // reset values first
     m_needItemList.clear();
+    m_botQuestLoot.clear();
 
     // run through accepted quests, get quest info and data
     for (int qs = 0; qs < MAX_QUEST_LOG_SIZE; ++qs)
@@ -2267,7 +2275,7 @@ void PlayerbotAI::SetQuestNeedItems()
         if (questid == 0)
             continue;
 
-       QuestStatusData &qData = m_bot->getQuestStatusMap()[questid];
+        QuestStatusData &qData = m_bot->getQuestStatusMap()[questid];
         // only check quest if it is incomplete
         if (qData.m_status != QUEST_STATUS_INCOMPLETE)
             continue;
@@ -2312,8 +2320,6 @@ void PlayerbotAI::SetQuestNeedItems()
                         m_collectObjects.push_back(entry);
                         m_collectObjects.sort();
                         m_collectObjects.unique();
-                        delete result;
-                        return;
                     }
                 } while (result->NextRow());
 
@@ -3432,7 +3438,7 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
             {
                 SpellCastTargets targets;
                 spell->prepare(&targets);
-                SetIgnoreUpdateTime(3);
+                SetIgnoreUpdateTime(6);
             }
         }
 
@@ -3688,7 +3694,10 @@ bool PlayerbotAI::CastSpell(uint32 spellId)
         if (!m_bot->IsWithinLOSInMap(pTarget))
             return false;
 
-        m_bot->CastSpell(pTarget, pSpellInfo, true);       // actually cast spell
+        if (IsAutoRepeatRangedSpell(pSpellInfo))
+            m_bot->CastSpell(pTarget, pSpellInfo, true);       // cast triggered spell
+        else
+            m_bot->CastSpell(pTarget, pSpellInfo, false);      // uni-cast spell
     }
 
     m_ignoreAIUpdatesUntilTime = time(NULL) + CastTime + 1;
@@ -4483,6 +4492,44 @@ void PlayerbotAI::extractGOinfo(const std::string& text, BotObjectList& m_lootTa
     }
 }
 
+void PlayerbotAI::extractTalentIds(const std::string &text, std::list<talentPair> &talentIds) const
+{
+    // Link format:
+    // |color|Htalent:talent_id:rank|h[name]|h|r
+    // |cff4e96f7|Htalent:1396:4|h[Unleashed Fury]|h|r
+
+    uint8 pos = 0;
+    while (true)
+    {
+        int i = text.find("Htalent:", pos);
+        if (i == -1)
+            break;
+        pos = i + 8;
+        // DEBUG_LOG("extractTalentIds first pos %u i %u",pos,i);
+        // extract talent_id
+        int endPos = text.find(':', pos);
+        if (endPos == -1)
+            break;
+        // DEBUG_LOG("extractTalentId second endpos : %u pos : %u",endPos,pos);
+        std::string idC = text.substr(pos, endPos - pos);
+        uint32 id = atol(idC.c_str());
+        pos = endPos + 1;
+        // extract rank
+        endPos = text.find('|', pos);
+        if (endPos == -1)
+            break;
+        // DEBUG_LOG("extractTalentId third endpos : %u pos : %u",endPos,pos);
+        std::string rankC = text.substr(pos, endPos - pos);
+        uint32 rank = atol(rankC.c_str());
+        pos = endPos + 1;
+
+        // DEBUG_LOG("extractTalentId second id : %u  rank : %u",id,rank);
+
+        if (id)
+            talentIds.push_back(std::pair<uint32, uint32>(id, rank));
+    }
+}
+
 // extracts currency in #g#s#c format
 uint32 PlayerbotAI::extractMoney(const std::string& text) const
 {
@@ -4643,7 +4690,7 @@ void PlayerbotAI::findNearbyGO()
 void PlayerbotAI::findNearbyCreature()
 {
     std::list<Creature*> creatureList;
-    float radius = 2.5;
+    float radius = INTERACTION_DISTANCE;
 
     CellPair pair(MaNGOS::ComputeCellPair(m_bot->GetPositionX(), m_bot->GetPositionY()));
     Cell cell(pair);
@@ -4667,10 +4714,10 @@ void PlayerbotAI::findNearbyCreature()
             uint32 npcflags = currCreature->GetUInt32Value(UNIT_NPC_FLAGS);
 
             if (!(*itr & npcflags))
-                continue;
+                break;
 
-            if ((*itr == UNIT_NPC_FLAG_TRAINER_CLASS) && !currCreature->CanTrainAndResetTalentsOf(m_bot))
-                continue;
+            if ((*itr == UNIT_NPC_FLAG_TRAINER) && !currCreature->CanTrainAndResetTalentsOf(m_bot))
+                break;
 
             WorldObject *wo = m_bot->GetMap()->GetWorldObject(currCreature->GetObjectGuid());
 
@@ -4685,7 +4732,6 @@ void PlayerbotAI::findNearbyCreature()
 
             if (m_bot->GetDistance(wo) < INTERACTION_DISTANCE)
             {
-
                 // DEBUG_LOG("%s is interacting with (%s)",m_bot->GetName(),currCreature->GetCreatureInfo()->Name);
                 GossipMenuItemsMapBounds pMenuItemBounds = sObjectMgr.GetGossipMenuItemsMapBounds(currCreature->GetCreatureInfo()->GossipMenuId);
 
@@ -4703,20 +4749,54 @@ void PlayerbotAI::findNearbyCreature()
 
                     switch (it->second.option_id)
                     {
+                        case GOSSIP_OPTION_AUCTIONEER:
                         case GOSSIP_OPTION_BANKER:
+                        case GOSSIP_OPTION_TAXIVENDOR:
+                        case GOSSIP_OPTION_GOSSIP:
+                        case GOSSIP_OPTION_INNKEEPER:
+                        case GOSSIP_OPTION_TRAINER:
+                        case GOSSIP_OPTION_QUESTGIVER:
+                        case GOSSIP_OPTION_VENDOR:
+                        case GOSSIP_OPTION_UNLEARNTALENTS:
+                        case GOSSIP_OPTION_ARMORER:
                         {
-                            // Manage banking actions
+                            // Manage questgiver, trainer, banker, auctioneer, innkeeper & vendor actions
                             if (!m_tasks.empty())
                                 for (std::list<taskPair>::iterator ait = m_tasks.begin(); ait != m_tasks.end(); ait = m_tasks.erase(ait))
                                 {
                                     switch (ait->first)
                                     {
-                                        // withdraw items
+                                        // add new auction item
+                                        case ADD_AUCTION:
+                                        {
+                                            // TellMaster("Creating auction");
+                                            AddAuction(ait->second, currCreature);
+                                            ListAuctions();
+                                            break;
+                                        }
+                                        // cancel active auction
+                                        case REMOVE_AUCTION:
+                                        {
+                                            // TellMaster("Cancelling auction");
+                                            if (!RemoveAuction(ait->second))
+                                                DEBUG_LOG("RemoveAuction: Couldn't remove auction (%u)", ait->second);
+                                            ListAuctions();
+                                            break;
+                                        }
+                                        // list active auctions
+                                        case LIST_AUCTION:
+                                        {
+                                            // TellMaster("Listing auction");
+                                            ListAuctions();
+                                            break;
+                                        }
+                                       // withdraw items
                                         case BANK_WITHDRAW:
                                         {
                                             // TellMaster("Withdraw items");
                                             if (!Withdraw(ait->second))
                                                 DEBUG_LOG("Withdraw: Couldn't withdraw (%u)", ait->second);
+                                            BankBalance();
                                             break;
                                         }
                                         // deposit items
@@ -4725,29 +4805,24 @@ void PlayerbotAI::findNearbyCreature()
                                             // TellMaster("Deposit items");
                                             if (!Deposit(ait->second))
                                                 DEBUG_LOG("Deposit: Couldn't deposit (%u)", ait->second);
+                                            BankBalance();
                                             break;
                                         }
-                                        default:
+                                        // bank balance
+                                        case BANK_BALANCE:
+                                        {
+                                            // TellMaster("Bank Balance");
+                                            BankBalance();
                                             break;
-                                    }
-                                }
-                            BankBalance();
-                            break;
-                        }
-                        case GOSSIP_OPTION_TAXIVENDOR:
-                        case GOSSIP_OPTION_GOSSIP:
-                        case GOSSIP_OPTION_INNKEEPER:
-                        case GOSSIP_OPTION_TRAINER:
-                        case GOSSIP_OPTION_QUESTGIVER:
-                        case GOSSIP_OPTION_VENDOR:
-                        case GOSSIP_OPTION_UNLEARNTALENTS:
-                        {
-                            // Manage questgiver, trainer, innkeeper & vendor actions
-                            if (!m_tasks.empty())
-                                for (std::list<taskPair>::iterator ait = m_tasks.begin(); ait != m_tasks.end(); ait = m_tasks.erase(ait))
-                                {
-                                    switch (ait->first)
-                                    {
+                                        }
+                                        // reset talents
+                                        case RESET_TALENTS:
+                                        {
+                                            // TellMaster("Reset all talents");
+                                            if (Talent(currCreature))
+                                                InspectUpdate();
+                                            break;
+                                        }
                                         // take new quests
                                         case TAKE_QUEST:
                                         {
@@ -4780,7 +4855,7 @@ void PlayerbotAI::findNearbyCreature()
                                         // repair items
                                         case REPAIR_ITEMS:
                                         {
-                                            // TellMaster("Repairing items");
+                                            TellMaster("Repairing items");
                                             Repair(ait->second, currCreature);
                                             break;
                                         }
@@ -4788,36 +4863,6 @@ void PlayerbotAI::findNearbyCreature()
                                             break;
                                     }
                                 }
-                            break;
-                        }
-                        case GOSSIP_OPTION_AUCTIONEER:
-                        {
-                            // Manage auctioneer actions
-                            if (!m_tasks.empty())
-                                for (std::list<taskPair>::iterator ait = m_tasks.begin(); ait != m_tasks.end();  ait = m_tasks.erase(ait))
-                                {
-                                    switch (ait->first)
-                                    {
-                                        // add new auction item
-                                        case ADD_AUCTION:
-                                        {
-                                            // TellMaster("Creating auction");
-                                            AddAuction(ait->second, currCreature);
-                                            break;
-                                        }
-                                        // cancel active auction
-                                        case REMOVE_AUCTION:
-                                        {
-                                            // TellMaster("Cancelling auction");
-                                            if (!RemoveAuction(ait->second))
-                                                DEBUG_LOG("RemoveAuction: Couldn't remove auction (%u)", ait->second);
-                                            break;
-                                        }
-                                        default:
-                                            break;
-                                    }
-                                }
-                            ListAuctions();
                             break;
                         }
                         default:
@@ -5309,6 +5354,21 @@ void PlayerbotAI::BankBalance()
     }
 }
 
+bool PlayerbotAI::Talent(Creature* trainer)
+{
+    if (!(m_bot->resetTalents()))
+    {
+        WorldPacket* const packet = new WorldPacket(MSG_TALENT_WIPE_CONFIRM, 8 + 4);    //you do not have any talent
+        *packet << uint64(0);
+        *packet << uint32(0);
+        m_bot->GetSession()->QueuePacket(packet);
+        return false;
+    }
+
+    trainer->CastSpell(m_bot, 14867, true);                  //spell: "Untalent Visual Effect"
+    return true;
+}
+
 void PlayerbotAI::Repair(const uint32 itemid, Creature* rCreature)
 {
     Item* rItem = FindItem(itemid); // if item equipped or in bags
@@ -5565,6 +5625,9 @@ bool PlayerbotAI::AddQuest(const uint32 entry, WorldObject * questgiver)
                 SetQuestNeedCreatures();
                 break;
             }
+
+        if (qInfo->GetSrcSpell() > 0)
+            m_bot->CastSpell(m_bot, qInfo->GetSrcSpell(), true);
 
         TellMaster(out.str());
         return true;
@@ -5834,6 +5897,13 @@ void PlayerbotAI::GetTaxi(ObjectGuid guid, BotTaxiNode& nodes)
     }
 }
 
+void PlayerbotAI::InspectUpdate()
+{
+    WorldPacket data(CMSG_INSPECT, 8);
+    data << m_bot->GetObjectGuid();
+    GetMaster()->GetSession()->HandleInspectOpcode(data);
+}
+
 // handle commands sent through chat channels
 void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
 {
@@ -5944,6 +6014,9 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
 
     else if (ExtractCommand("bank", input))
         _HandleCommandBank(input, fromPlayer);
+
+    else if (ExtractCommand("talent", input))
+        _HandleCommandTalent(input, fromPlayer);
 
     else if (ExtractCommand("use", input, true)) // true -> "use" OR "u"
         _HandleCommandUse(input, fromPlayer);
@@ -6309,6 +6382,7 @@ void PlayerbotAI::_HandleCommandAuction(std::string &text, Player &fromPlayer)
 {
     if (text == "")
     {
+        m_tasks.push_back(std::pair<enum TaskFlags, uint32>(LIST_AUCTION, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_AUCTIONEER); // list all bot auctions
     }
     else if (ExtractCommand("add",text))
@@ -6666,6 +6740,7 @@ void PlayerbotAI::_HandleCommandBank(std::string &text, Player &fromPlayer)
 {
     if (text == "")
     {
+        m_tasks.push_back(std::pair<enum TaskFlags, uint32>(BANK_BALANCE, 0));
         m_findNPC.push_back(UNIT_NPC_FLAG_BANKER); // list all bot balance
     }
     else if (ExtractCommand("deposit", text))
@@ -6687,6 +6762,179 @@ void PlayerbotAI::_HandleCommandBank(std::string &text, Player &fromPlayer)
     else
     {
         SendWhisper("I don't understand what you're trying to do", fromPlayer);
+    }
+}
+
+// _HandleCommandTalent: Handle talents:
+// talent                           -- Lists bot(s) unspent points & cost to reset
+// talent learn                     -- Lists available bot talents [TALENT LINK], as long as the bot has unspent points.
+// talent learn [TALENT LINK] ..    -- Learn selected talent [TALENT LINK] from 'talent learn' output (shift click icon/link)
+// talent reset                     -- Resets all talents (Must visit a suitable class trainer to reset talents)
+void PlayerbotAI::_HandleCommandTalent(std::string &text, Player &fromPlayer)
+{
+    std::ostringstream out;
+    uint32 CurTalentPoints = m_bot->GetFreeTalentPoints();
+
+    if (ExtractCommand("learn", text))
+    {
+        if (text.size() > 0)
+        {
+
+            std::list<talentPair>talents;
+            extractTalentIds(text, talents);
+
+            for (std::list<talentPair>::iterator itr = talents.begin(); itr != talents.end(); itr++)
+            {
+                uint32 talentid;
+                uint32 rank;
+
+                talentid = itr->first;
+                rank = itr->second;
+
+                m_bot->learnSpell(talentid, false);
+
+                if (m_bot->HasSpell(talentid))
+                {
+                    WorldPacket data(SMSG_PLAY_SPELL_IMPACT, 12);            // visual effect on player
+                    data << m_bot->GetObjectGuid();
+                    data << uint32(0x016A);                                 // index from SpellVisualKit.dbc
+                    GetMaster()->GetSession()->SendPacket(&data);
+
+                    InspectUpdate();
+                }
+
+                // DEBUG_LOG("TalentID: %u Rank: %u\n", talentid, rank);
+            }
+        }
+        // Handle: List class or profession skills, spells & abilities for selected trainer
+        else
+        {
+            if (CurTalentPoints == 0)
+            {
+                out << "I have no free talent points to spend!";
+                SendWhisper(out.str(), fromPlayer);
+                return;
+            }
+            else
+                out << "I have " << CurTalentPoints << " free talent points to spend\r";
+
+            out << "The talents I can learn:\r";
+
+            // find class talent tabs (all players have 3 talent tabs)
+            uint32 const* talentTabIds = GetTalentTabPages(m_bot->getClass());
+
+            for (uint32 i = 0; i < 3; ++i)
+            {
+                uint32 talentTabId = talentTabIds[i];
+                uint32 classMask = m_bot->getClassMask();
+
+                for (uint32 ts = 0; ts < sTalentStore.GetNumRows(); ++ts)
+                {
+                    TalentEntry const *talentInfo = sTalentStore.LookupEntry(ts);
+                    if (!talentInfo)
+                        continue;
+
+                    TalentTabEntry const *talentTabInfo = sTalentTabStore.LookupEntry( talentInfo->TalentTab );
+                    if (!talentTabInfo)
+                        continue;
+
+                    // if talent not right for bot class, continue
+                    if ( (classMask & talentTabInfo->ClassMask) == 0 )
+                        continue;
+
+                    // if talent not on same tab, continue
+                    if (talentInfo->TalentTab != talentTabId)
+                        continue;
+                    // find current max talent rank
+                    int curtalent_maxrank = 0;
+                    for (int k = MAX_TALENT_RANK-1; k > -1; --k)
+                    {
+                        if (talentInfo->RankID[k] && m_bot->HasSpell(talentInfo->RankID[k]))
+                        {
+                            curtalent_maxrank = k + 1;
+                            break;
+                        }
+                    }
+
+                    // Check if it requires another previous talent
+                    if (talentInfo->DependsOn > 0)
+                    {
+                        if (TalentEntry const *depTalentInfo = sTalentStore.LookupEntry(talentInfo->DependsOn))
+                        {
+                            bool hasEnoughRank = false;
+                            for (int dor = talentInfo->DependsOnRank; dor < MAX_TALENT_RANK; ++dor)
+                            {
+                                if (depTalentInfo->RankID[dor] != 0)
+                                    if (m_bot->HasSpell(depTalentInfo->RankID[dor]))
+                                        hasEnoughRank = true;
+                            }
+
+                            if (!hasEnoughRank)
+                                continue;
+                        }
+                    }
+
+                    // Check if it requires spell
+                    if ( talentInfo->DependsOnSpell && !m_bot->HasSpell(talentInfo->DependsOnSpell) )
+                        continue;
+
+                    // Find out how many points we have in this field
+                    uint32 spentPoints = 0;
+
+                    uint32 tTab = talentInfo->TalentTab;
+                    if (talentInfo->Row > 0)
+                    {
+                        unsigned int numRows = sTalentStore.GetNumRows();
+                        for (unsigned int i = 0; i < numRows; ++i)          // Loop through all talents.
+                        {
+                            // Someday, someone needs to revamp
+                            const TalentEntry *tmpTalent = sTalentStore.LookupEntry(i);
+                            if (tmpTalent)                                  // the way talents are tracked
+                            {
+                                if (tmpTalent->TalentTab == tTab)
+                                {
+                                    for (int j = 0; j < MAX_TALENT_RANK; ++j)
+                                    {
+                                        if (tmpTalent->RankID[j] != 0)
+                                        {
+                                            if (m_bot->HasSpell(tmpTalent->RankID[j]))
+                                                spentPoints += j + 1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // not have required min points spent in talent tree
+                    if (spentPoints < (talentInfo->Row * MAX_TALENT_RANK))
+                        continue;
+
+                    SpellEntry const* spellInfo = sSpellStore.LookupEntry(talentInfo->RankID[curtalent_maxrank]);
+                    if (!spellInfo || !SpellMgr::IsSpellValid(spellInfo,m_bot,false))
+                        continue;
+
+                    out << "|cff4e96f7|Htalent:" << talentInfo->RankID[curtalent_maxrank] << ":" << curtalent_maxrank << "|h[" << spellInfo->SpellName[GetMaster()->GetSession()->GetSessionDbcLocale()] << "]|h|r";
+                }
+            }
+            SendWhisper(out.str(), fromPlayer);
+        }
+    }
+    else if (ExtractCommand("reset", text))
+    {
+        m_tasks.push_back(std::pair<enum TaskFlags, uint32>(RESET_TALENTS, 0));
+        m_findNPC.push_back(UNIT_NPC_FLAG_TRAINER);
+    }
+    else
+    {
+        uint32 gold = uint32(m_bot->resetTalentsCost() / 10000);
+
+        out << "I have " << CurTalentPoints << " free talent points to spend.\r";
+
+        if (gold > 0)
+            out << "Cost to reset all Talents is " << gold << " |TInterface\\Icons\\INV_Misc_Coin_01:8|t";
+
+        SendWhisper(out.str(), fromPlayer);
     }
 }
 
@@ -7221,6 +7469,7 @@ void PlayerbotAI::_HandleCommandCraft(std::string &text, Player &fromPlayer)
                 spell->prepare(&targets);
                 m_CurrentlyCastingSpellId = spellId;
                 SetState(BOTSTATE_CRAFT);
+                SetIgnoreUpdateTime(6);
             }
         }
         else
@@ -7325,7 +7574,7 @@ void PlayerbotAI::_HandleCommandQuest(std::string &text, Player &fromPlayer)
         bool hasCompleteQuests = false;
         std::ostringstream comout;
         comout << "my complete quests are:";
-        for (uint16 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
+        for (int slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
         {
             if (uint32 questId = m_bot->GetQuestSlotQuestId(slot))
             {
@@ -8360,6 +8609,22 @@ void PlayerbotAI::_HandleCommandHelp(std::string &text, Player &fromPlayer)
             return;
         }
     }
+    if (bMainHelp || ExtractCommand("talent", text))
+    {
+        msg = _HandleCommandHelpHelper("talent", "Lists unspent talent points and the cost to reset all talents.");
+        msg = _HandleCommandHelpHelper("talent learn", "Lists linked talents, that can be learnt with unspent talent points");
+        ch.SendSysMessage(msg.c_str());
+
+        if (!bMainHelp)
+        {
+            ch.SendSysMessage(_HandleCommandHelpHelper("talent learn", "Has me learn the linked talent.", HL_TALENT).c_str());
+            ch.SendSysMessage(_HandleCommandHelpHelper("talent reset", "Resets my talents. Assuming I have the appropriate amount of sparkly gold, shiny silver, and... unrusted copper.").c_str());
+
+            if (text != "") ch.SendSysMessage(sInvalidSubcommand.c_str());
+            return;
+        }
+        if (!bMainHelp) return;
+    }
     if (bMainHelp || ExtractCommand("bank", text))
     {
         ch.SendSysMessage(_HandleCommandHelpHelper("bank", "Gives you my bank balance. I thought that was private.").c_str());
@@ -8452,6 +8717,12 @@ std::string PlayerbotAI::_HandleCommandHelpHelper(std::string sCommand, std::str
             oss << " [ITEM]";
             if (bReqLinkMultiples)
                 oss << " [ITEM] ..";
+        }
+        else if (reqLink == HL_TALENT)
+        {
+            oss << " [TALENT]";
+            if (bReqLinkMultiples)
+                oss << " [TALENT] ..";
         }
         else if (reqLink == HL_SKILL)
         {

@@ -599,17 +599,6 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
                     choice = 0; // Pass
 
                 group->CountRollVote(bot, Guid, itemSlot, RollVote(choice));
-
-                switch (choice)
-                {
-                    case ROLL_NEED:
-                        bot->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_NEED, 1);
-                        break;
-                    case ROLL_GREED:
-                    case ROLL_DISENCHANT:
-                        bot->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_ROLL_GREED, 1);
-                        break;
-                }
             }
             return;
         }

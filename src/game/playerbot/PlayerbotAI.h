@@ -152,11 +152,14 @@ public:
         REPAIR_ITEMS                = 0x02,  // repair items
         ADD_AUCTION                 = 0x03,  // add auction
         REMOVE_AUCTION              = 0x04,  // remove auction
-        BANK_WITHDRAW               = 0x05,  // withdraw item from bank
-        BANK_DEPOSIT                = 0x06,  // deposit item in bank
-        LIST_QUEST                  = 0x07,  // list quests
-        END_QUEST                   = 0x08,  // turn in quests
-        TAKE_QUEST                  = 0x09   // take quest
+        LIST_AUCTION                = 0x05,  // list bot auctions
+        RESET_TALENTS               = 0x06,  // reset all talents
+        BANK_WITHDRAW               = 0x07,  // withdraw item from bank
+        BANK_DEPOSIT                = 0x08,  // deposit item in bank
+        BANK_BALANCE                = 0x09,  // list bot bank balance
+        LIST_QUEST                  = 0x0A,  // list quests
+        END_QUEST                   = 0x0B,  // turn in quests
+        TAKE_QUEST                  = 0x0C   // take quest
     };
 
     enum AnnounceFlags
@@ -173,6 +176,7 @@ public:
     typedef std::list<taskPair> BotTaskList;
     typedef std::list<enum NPCFlags> BotNPCList;
     typedef std::map<uint32, uint32> BotNeedItem;
+    typedef std::pair<uint32, uint32> talentPair;
     typedef std::list<ObjectGuid> BotObjectList;
     typedef std::list<uint32> BotEntryList;
     typedef std::vector<uint32> BotTaxiNode;
@@ -204,6 +208,7 @@ public:
         HL_NONE,
         HL_PROFESSION,
         HL_ITEM,
+        HL_TALENT,
         HL_SKILL,
         HL_OPTION,
         HL_PETAGGRO,
@@ -262,6 +267,9 @@ public:
 
     // extract auction ids from links
     void extractAuctionIds(const std::string& text, std::list<uint32>& auctionIds) const;
+
+    // extracts talent ids to list
+    void extractTalentIds(const std::string& text, std::list<talentPair>& talentIds) const;
 
     // extracts item ids from links
     void extractItemIds(const std::string& text, std::list<uint32>& itemIds) const;
@@ -427,6 +435,8 @@ public:
     void ListAuctions();
     bool RemoveAuction(const uint32 auctionid);
     void Repair(const uint32 itemid, Creature* rCreature);
+    bool Talent(Creature* tCreature);
+    void InspectUpdate();
     bool Withdraw(const uint32 itemid);
     bool Deposit(const uint32 itemid);
     void BankBalance();
@@ -449,6 +459,7 @@ private:
     void _HandleCommandAuction(std::string &text, Player &fromPlayer);
     void _HandleCommandMail(std::string &text, Player &fromPlayer);
     void _HandleCommandBank(std::string &text, Player &fromPlayer);
+    void _HandleCommandTalent(std::string &text, Player &fromPlayer);
     void _HandleCommandUse(std::string &text, Player &fromPlayer);
     void _HandleCommandEquip(std::string &text, Player &fromPlayer);
     void _HandleCommandFind(std::string &text, Player &fromPlayer);
