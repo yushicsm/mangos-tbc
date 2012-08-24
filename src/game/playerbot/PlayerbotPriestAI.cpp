@@ -130,6 +130,8 @@ void PlayerbotPriestAI::DoNextCombatManeuver(Unit *pTarget)
     }
 
     // ------- Non Duel combat ----------
+    Player *m_bot = GetPlayerBot();
+    Group *m_group = m_bot->GetGroup();
     float dist = m_bot->GetCombatDistance(pTarget);
 
     if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED && dist > ATTACK_DISTANCE)
@@ -141,9 +143,6 @@ void PlayerbotPriestAI::DoNextCombatManeuver(Unit *pTarget)
         ai->SetCombatStyle(PlayerbotAI::COMBAT_MELEE);
 
     ai->SetMovementOrder(PlayerbotAI::MOVEMENT_FOLLOW, GetMaster());   // dont want to melee mob
-
-    Player *m_bot = GetPlayerBot();
-    Group *m_group = m_bot->GetGroup();
 
     if (dist > ATTACK_DISTANCE && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
     {

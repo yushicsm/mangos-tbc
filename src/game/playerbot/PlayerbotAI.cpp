@@ -494,7 +494,7 @@ void PlayerbotAI::AutoUpgradeEquipment() // test for autoequip
         if (!pItem2) // no item to compare to see if has stats useful for this bots class/style so check for stats and equip if possible
         {
             ItemPrototype const *pProto2 = pItem->GetProto();
-            if (pProto2->StatsCount > 0)
+            if (ItemStatsCount(pProto2) > 0)
             {
                 if (!ItemStatComparison(pProto2, pProto2))
                     continue;
@@ -528,7 +528,7 @@ void PlayerbotAI::AutoUpgradeEquipment() // test for autoequip
                 if (!pItem2)
                 {
                     ItemPrototype const *pProto2 = pItem->GetProto();
-                    if (pProto2->StatsCount > 0)
+                    if (ItemStatsCount(pProto2) > 0)
                     {
                         if (!ItemStatComparison(pProto2, pProto2))
                             continue;
@@ -546,11 +546,32 @@ void PlayerbotAI::AutoUpgradeEquipment() // test for autoequip
     InspectUpdate();
 }
 
+uint32 PlayerbotAI::ItemStatsCount(ItemPrototype const * proto)
+{
+   uint32 count = 0;
+
+   for(int i = 0; i < MAX_ITEM_PROTO_STATS; ++i)
+       if (proto && (proto->ItemStat[i].ItemStatType || proto->ItemStat[i].ItemStatValue))
+           count++;
+
+   return count;
+}
+
+float PlayerbotAI::getItemDPS(ItemPrototype const * proto) const
+{
+        if (proto->Delay == 0)
+            return 0;
+        float temp = 0;
+        for (int i = 0; i < MAX_ITEM_PROTO_DAMAGES; ++i)
+            temp += proto->Damage[i].DamageMin + proto->Damage[i].DamageMax;
+        return temp * 500 / proto->Delay;
+}
+
 void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
 {
     const static uint32 item_armor_skills[MAX_ITEM_SUBCLASS_ARMOR] =
     {
-        0, SKILL_CLOTH, SKILL_LEATHER, SKILL_MAIL, SKILL_PLATE_MAIL, 0, SKILL_SHIELD, 0, 0, 0, 0
+        0, SKILL_CLOTH, SKILL_LEATHER, SKILL_MAIL, SKILL_PLATE_MAIL, 0, SKILL_SHIELD, 0, 0, 0
     };
     ItemPrototype const *pProto = pItem2->GetProto(); // equipped item if any
     ItemPrototype const *pProto2 = pItem->GetProto(); // new item to compare
@@ -559,9 +580,9 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
     {
     case ITEM_CLASS_WEAPON:
         {
-            // DEBUG_LOG("Current Item DPS (%f) Equippable Item DPS (%f)",pProto->getDPS(),pProto2->getDPS());
+            // DEBUG_LOG("Current Item DPS (%f) Equippable Item DPS (%f)",getItemDPS(pProto),getItemDPS(pProto2));
             // m_bot->GetSkillValue(pProto->RequiredSkill) < m_bot->GetSkillValue(pProto2->RequiredSkill)
-            if (pProto->getDPS() < pProto2->getDPS())   // if new item has a better DPS
+            if (getItemDPS(pProto) < getItemDPS(pProto2))   // if new item has a better DPS
             {
                 EquipItem(pItem);
                 pProto = pProto2; // ensure that the item with the highest DPS is equipped
@@ -575,7 +596,7 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
                 m_bot->HasSkill(item_armor_skills[pProto2->SubClass]) && !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
             {
                 // First check to see if this item has stats, and if the bot REALLY wants to lose its old item
-                if (pProto2->StatsCount > 0)
+                if (ItemStatsCount(pProto2) > 0)
                 {
                     if (!ItemStatComparison(pProto, pProto2))
                         return; // stats on equipped item are better, OR stats are not useful for this bots class/style
@@ -587,7 +608,7 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
                 m_bot->HasSkill(item_armor_skills[pProto2->SubClass]) && !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
             {
                 // First check to see if this item has stats, and if the bot REALLY wants to lose its old item
-                if (pProto2->StatsCount > 0)
+                if (ItemStatsCount(pProto2) > 0)
                 {
                     if (!ItemStatComparison(pProto, pProto2))
                         return; // stats on equipped item are better, OR stats are not useful for this bots class/style
@@ -599,7 +620,7 @@ void PlayerbotAI::AutoEquipComparison(Item *pItem, Item *pItem2)
                 !m_bot->HasSkill(item_armor_skills[pProto2->SubClass + 1])) // itemlevel + armour + armour class
             {
                 // First check to see if this item has stats, and if the bot REALLY wants to lose its old item
-                if (pProto2->StatsCount > 0)
+                if (ItemStatsCount(pProto2) > 0)
                 {
                     if (!ItemStatComparison(pProto, pProto2))
                         return; // stats on equipped item are better, OR stats are not useful for this bots class/style
@@ -628,7 +649,6 @@ bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemProt
             break;
 
         case CLASS_PALADIN:
-        case CLASS_DEATH_KNIGHT:
         case CLASS_SHAMAN:
         case CLASS_DRUID:
             isclass = 2;
@@ -657,11 +677,9 @@ bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemProt
         }
         // caster stats
         if (itemmod == ITEM_MOD_MANA || itemmod == ITEM_MOD_INTELLECT || itemmod == ITEM_MOD_SPIRIT || itemmod == ITEM_MOD_HIT_SPELL_RATING ||
-            itemmod == ITEM_MOD_CRIT_SPELL_RATING || itemmod == ITEM_MOD_HASTE_SPELL_RATING || itemmod == ITEM_MOD_SPELL_DAMAGE_DONE ||
-            itemmod == ITEM_MOD_MANA_REGENERATION || itemmod == ITEM_MOD_SPELL_POWER || itemmod == ITEM_MOD_SPELL_PENETRATION ||
+            itemmod == ITEM_MOD_CRIT_SPELL_RATING || itemmod == ITEM_MOD_HASTE_SPELL_RATING ||
             itemmod2 == ITEM_MOD_MANA || itemmod2 == ITEM_MOD_INTELLECT || itemmod2 == ITEM_MOD_SPIRIT || itemmod2 == ITEM_MOD_HIT_SPELL_RATING ||
-            itemmod2 == ITEM_MOD_CRIT_SPELL_RATING || itemmod2 == ITEM_MOD_HASTE_SPELL_RATING || itemmod2 == ITEM_MOD_SPELL_DAMAGE_DONE ||
-            itemmod2 == ITEM_MOD_MANA_REGENERATION || itemmod2 == ITEM_MOD_SPELL_POWER || itemmod2 == ITEM_MOD_SPELL_PENETRATION)
+            itemmod2 == ITEM_MOD_CRIT_SPELL_RATING || itemmod2 == ITEM_MOD_HASTE_SPELL_RATING)
         {
             switch (isclass) // 1 caster, 2 hybrid, 3 melee
             {
@@ -774,15 +792,14 @@ bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemProt
             itemmod == ITEM_MOD_HIT_TAKEN_MELEE_RATING || itemmod == ITEM_MOD_HIT_TAKEN_RANGED_RATING ||itemmod == ITEM_MOD_HIT_TAKEN_SPELL_RATING ||
             itemmod == ITEM_MOD_CRIT_TAKEN_MELEE_RATING || itemmod == ITEM_MOD_CRIT_TAKEN_RANGED_RATING ||
             itemmod == ITEM_MOD_CRIT_TAKEN_SPELL_RATING || itemmod == ITEM_MOD_HASTE_MELEE_RATING ||
-            itemmod == ITEM_MOD_HIT_TAKEN_RATING || itemmod == ITEM_MOD_CRIT_TAKEN_RATING || itemmod == ITEM_MOD_ATTACK_POWER ||
-            itemmod == ITEM_MOD_BLOCK_VALUE || itemmod2 == ITEM_MOD_HEALTH || itemmod2 == ITEM_MOD_AGILITY || itemmod2 == ITEM_MOD_STRENGTH ||
+            itemmod == ITEM_MOD_HIT_TAKEN_RATING || itemmod == ITEM_MOD_CRIT_TAKEN_RATING ||
+            itemmod2 == ITEM_MOD_HEALTH || itemmod2 == ITEM_MOD_AGILITY || itemmod2 == ITEM_MOD_STRENGTH ||
             itemmod2 == ITEM_MOD_DEFENSE_SKILL_RATING || itemmod2 == ITEM_MOD_DODGE_RATING || itemmod2 == ITEM_MOD_PARRY_RATING ||
             itemmod2 == ITEM_MOD_BLOCK_RATING || itemmod2 == ITEM_MOD_HIT_MELEE_RATING || itemmod2 == ITEM_MOD_CRIT_MELEE_RATING ||
             itemmod2 == ITEM_MOD_HIT_TAKEN_MELEE_RATING || itemmod2 == ITEM_MOD_HIT_TAKEN_RANGED_RATING ||itemmod2 == ITEM_MOD_HIT_TAKEN_SPELL_RATING ||
             itemmod2 == ITEM_MOD_CRIT_TAKEN_MELEE_RATING || itemmod2 == ITEM_MOD_CRIT_TAKEN_RANGED_RATING ||
             itemmod2 == ITEM_MOD_CRIT_TAKEN_SPELL_RATING || itemmod2 == ITEM_MOD_HASTE_MELEE_RATING ||
-            itemmod2 == ITEM_MOD_HIT_TAKEN_RATING || itemmod2 == ITEM_MOD_CRIT_TAKEN_RATING || itemmod2 == ITEM_MOD_ATTACK_POWER ||
-            itemmod2 == ITEM_MOD_BLOCK_VALUE)
+            itemmod2 == ITEM_MOD_HIT_TAKEN_RATING || itemmod2 == ITEM_MOD_CRIT_TAKEN_RATING)
         {
             switch (isclass) // 1 caster, 2 hybrid, 3 melee
             {
@@ -873,12 +890,10 @@ bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemProt
             }
         }
         // stats which aren't strictly caster or melee (hybrid perhaps or style dependant)
-        if (itemmod == ITEM_MOD_HIT_RATING || itemmod == ITEM_MOD_CRIT_RATING ||
-            itemmod == ITEM_MOD_RESILIENCE_RATING || itemmod == ITEM_MOD_HASTE_RATING || itemmod == ITEM_MOD_EXPERTISE_RATING ||
-            itemmod == ITEM_MOD_ARMOR_PENETRATION_RATING || itemmod == ITEM_MOD_HEALTH_REGEN ||	itemmod == ITEM_MOD_STAMINA ||
+        if (itemmod == ITEM_MOD_HIT_RATING || itemmod == ITEM_MOD_CRIT_RATING || itemmod == ITEM_MOD_RESILIENCE_RATING ||
+            itemmod == ITEM_MOD_HASTE_RATING || itemmod == ITEM_MOD_EXPERTISE_RATING || itemmod == ITEM_MOD_STAMINA ||
             itemmod2 == ITEM_MOD_HIT_RATING || itemmod2 == ITEM_MOD_CRIT_RATING || itemmod2 == ITEM_MOD_RESILIENCE_RATING ||
-            itemmod2 == ITEM_MOD_HASTE_RATING || itemmod2 == ITEM_MOD_EXPERTISE_RATING || itemmod2 == ITEM_MOD_ARMOR_PENETRATION_RATING ||
-            itemmod2 == ITEM_MOD_HEALTH_REGEN || itemmod2 == ITEM_MOD_STAMINA)
+            itemmod2 == ITEM_MOD_HASTE_RATING || itemmod2 == ITEM_MOD_EXPERTISE_RATING || itemmod2 == ITEM_MOD_STAMINA)
         {
             switch (isclass) // 1 caster, 2 hybrid, 3 melee
             {
@@ -990,8 +1005,7 @@ bool PlayerbotAI::ItemStatComparison(const ItemPrototype *pProto, const ItemProt
         }
         // stats relating to ranged only
         if (itemmod == ITEM_MOD_HIT_RANGED_RATING || itemmod == ITEM_MOD_CRIT_RANGED_RATING || itemmod == ITEM_MOD_HASTE_RANGED_RATING ||
-            itemmod == ITEM_MOD_RANGED_ATTACK_POWER || itemmod2 == ITEM_MOD_HIT_RANGED_RATING || itemmod2 == ITEM_MOD_CRIT_RANGED_RATING ||
-            itemmod2 == ITEM_MOD_HASTE_RANGED_RATING || itemmod2 == ITEM_MOD_RANGED_ATTACK_POWER)
+            itemmod2 == ITEM_MOD_HIT_RANGED_RATING || itemmod2 == ITEM_MOD_CRIT_RANGED_RATING || itemmod2 == ITEM_MOD_HASTE_RANGED_RATING)
         {
             switch (isclass) // 1 caster, 2 hybrid, 3 melee
             {
@@ -1177,9 +1191,9 @@ bool PlayerbotAI::IsItemUseful(uint32 itemid)
     case ITEM_CLASS_KEY:
         return true;
     case ITEM_CLASS_GEM:
-        if ((m_bot->HasSkill(SKILL_BLACKSMITHING) ||
+        if (m_bot->HasSkill(SKILL_BLACKSMITHING) ||
             m_bot->HasSkill(SKILL_ENGINEERING) ||
-            m_bot->HasSkill(SKILL_JEWELCRAFTING)))
+            m_bot->HasSkill(SKILL_JEWELCRAFTING))
             return true;
         break;
     case ITEM_CLASS_TRADE_GOODS:
@@ -1207,9 +1221,9 @@ bool PlayerbotAI::IsItemUseful(uint32 itemid)
                 return true;
             break;
         case ITEM_SUBCLASS_METAL_STONE:
-            if ((m_bot->HasSkill(SKILL_BLACKSMITHING) ||
+            if (m_bot->HasSkill(SKILL_BLACKSMITHING) ||
                 m_bot->HasSkill(SKILL_ENGINEERING) ||
-                m_bot->HasSkill(SKILL_MINING)))
+                m_bot->HasSkill(SKILL_MINING))
                 return true;
             break;
         case ITEM_SUBCLASS_MEAT:
@@ -1217,9 +1231,8 @@ bool PlayerbotAI::IsItemUseful(uint32 itemid)
                 return true;
             break;
         case ITEM_SUBCLASS_HERB:
-            if ((m_bot->HasSkill(SKILL_HERBALISM) ||
-                m_bot->HasSkill(SKILL_ALCHEMY) ||
-                m_bot->HasSkill(SKILL_INSCRIPTION)))
+            if (m_bot->HasSkill(SKILL_HERBALISM) ||
+                m_bot->HasSkill(SKILL_ALCHEMY))
                 return true;
             break;
         case ITEM_SUBCLASS_ELEMENTAL:
@@ -1404,7 +1417,7 @@ void PlayerbotAI::SendOrders(Player& /*player*/)
     }
 
     TellMaster(out.str().c_str());
-    TellMaster("My combat delay is '%u'", gDelayAttack);
+    TellMaster("My combat delay is '%u'", m_DelayAttack);
 }
 
 // handle outgoing packets the server would send to the client
@@ -3823,7 +3836,7 @@ Unit* PlayerbotAI::FindAttacker(ATTACKERINFOTYPE ait, Unit *victim)
 /**
 * BotDataRestore()
 * Restores autoequip - the toggle status for the 'equip auto' command.
-* Restores gDelayAttack - the other attributes need a valid target. This function is to be called when the targets
+* Restores m_DelayAttack - the other attributes need a valid target. This function is to be called when the targets
 * may or may not be online (such as upon login). See CombatOrderRestore() for full orders restore.
 */
 void PlayerbotAI::BotDataRestore()
@@ -4779,7 +4792,7 @@ bool PlayerbotAI::CastSpell(uint32 spellId)
 
             if (target_type == TARGET_FLAG_OBJECT)
             {
-                WorldPacket* const packetgouse = new WorldPacket(CMSG_GAMEOBJ_REPORT_USE, 8);
+                WorldPacket* const packetgouse = new WorldPacket(CMSG_GAMEOBJ_USE, 8);
                 *packetgouse << m_lootCurrent;
                 m_bot->GetSession()->QueuePacket(packetgouse);  // queue the packet to get around race condition
 
@@ -7223,6 +7236,9 @@ void PlayerbotAI::HandleCommand(const std::string& text, Player& fromPlayer)
     else if (ExtractCommand("help", input))
         _HandleCommandHelp(input, fromPlayer);
 
+    else if (fromPlayer.GetSession()->GetSecurity() > SEC_PLAYER && ExtractCommand("gm", input))
+        _HandleCommandGM(input, fromPlayer);
+
     else if (ExtractCommand("reset", input))
         _HandleCommandReset(input, fromPlayer);
     else if (ExtractCommand("orders", input))
@@ -7439,9 +7455,9 @@ void PlayerbotAI::_HandleCommandOrders(std::string &text, Player &fromPlayer)
         sscanf(text.c_str(), "%d", &gdelay);
         if (gdelay <= 10)
         {
-            gDelayAttack = gdelay;
-            TellMaster("Combat delay is now '%u' ", gDelayAttack);
-            CharacterDatabase.DirectPExecute("UPDATE playerbot_saved_data SET combat_delay = '%u' WHERE guid = '%u'", gDelayAttack, m_bot->GetGUIDLow());
+            m_DelayAttack = gdelay;
+            TellMaster("Combat delay is now '%u' ", m_DelayAttack);
+            CharacterDatabase.DirectPExecute("UPDATE playerbot_saved_data SET combat_delay = '%u' WHERE guid = '%u'", m_DelayAttack, m_bot->GetGUIDLow());
             return;
         }
         else

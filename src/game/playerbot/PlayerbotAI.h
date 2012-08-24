@@ -399,8 +399,8 @@ public:
     //void Stay();
     //bool Follow(Player& player);
     void SendNotEquipList(Player& player);
-    uint8 gDelayAttack;
-    uint8 gDelayAttackInit;
+    uint8 m_DelayAttack;
+    time_t m_DelayAttackInit;
     Unit *gPrimtarget;
     Unit *gSectarget;
     uint32 gQuestFetch;
@@ -420,6 +420,8 @@ public:
     void AutoUpgradeEquipment();
     void FollowAutoReset();
     void AutoEquipComparison(Item *pItem, Item *pItem2);
+    uint32 ItemStatsCount(ItemPrototype const * proto);
+    float getItemDPS(ItemPrototype const * proto) const;
     bool ItemStatComparison(const ItemPrototype *pProto, const ItemPrototype *pProto2);
     void Feast();
     void InterruptCurrentCastingSpell();
@@ -540,6 +542,7 @@ private:
     void _HandleCommandStats(std::string &text, Player &fromPlayer);
     void _HandleCommandHelp(std::string &text, Player &fromPlayer);
     void _HandleCommandHelp(const char* szText, Player &fromPlayer) { std::string text = szText; _HandleCommandHelp(text, fromPlayer); }
+    void _HandleCommandGM(std::string &text, Player &fromPlayer);
     std::string _HandleCommandHelpHelper(std::string sCommand, std::string sExplain, HELPERLINKABLES reqLink = HL_NONE, bool bReqLinkMultiples = false, bool bCommandShort = false);
 
     // ****** Closed Actions ********************************
