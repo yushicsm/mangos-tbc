@@ -87,9 +87,9 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
     // Damage Spells (primitive example)
     Player *m_bot = GetPlayerBot();
     Unit* pVictim = pTarget->getVictim();
-    float dist = m_bot->GetDistance(pTarget);
+    bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
 
-    if (dist > ATTACK_DISTANCE && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
+    if (!meleeReach && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
     {
         // switch to ranged combat
         ai->SetCombatStyle(PlayerbotAI::COMBAT_RANGED);
@@ -124,7 +124,7 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
                 LastSpellFrost = LastSpellFrost + 1;
                 break;
             }
-            else if (FROST_NOVA > 0 && LastSpellFrost < 4 && dist <= ATTACK_DISTANCE && !pTarget->HasAura(FROST_NOVA, EFFECT_INDEX_0) && ai->GetManaPercent() >= 10)
+            else if (FROST_NOVA > 0 && LastSpellFrost < 4 && meleeReach && !pTarget->HasAura(FROST_NOVA, EFFECT_INDEX_0) && ai->GetManaPercent() >= 10)
             {
                 ai->CastSpell(FROST_NOVA, *pTarget);
                 SpellSequence = SPELL_FIRE;
@@ -146,7 +146,7 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
                 LastSpellFrost = LastSpellFrost + 1;
                 break;
             }
-            else if (CONE_OF_COLD > 0 && LastSpellFrost < 7 && dist <= ATTACK_DISTANCE && !pTarget->HasAura(CONE_OF_COLD, EFFECT_INDEX_0) && ai->GetManaPercent() >= 35)
+            else if (CONE_OF_COLD > 0 && LastSpellFrost < 7 && meleeReach && !pTarget->HasAura(CONE_OF_COLD, EFFECT_INDEX_0) && ai->GetManaPercent() >= 35)
             {
                 ai->CastSpell(CONE_OF_COLD, *pTarget);
                 SpellSequence = SPELL_FIRE;
@@ -242,14 +242,14 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
                 LastSpellFire = LastSpellFire + 1;
                 break;
             }
-            else if (BLAST_WAVE > 0 && LastSpellFire < 8 && ai->GetAttackerCount() >= 3 && dist <= ATTACK_DISTANCE && ai->GetManaPercent() >= 34)
+            else if (BLAST_WAVE > 0 && LastSpellFire < 8 && ai->GetAttackerCount() >= 3 && meleeReach && ai->GetManaPercent() >= 34)
             {
                 ai->CastSpell(BLAST_WAVE, *pTarget);
                 SpellSequence = SPELL_ARCANE;
                 LastSpellFire = LastSpellFire + 1;
                 break;
             }
-            else if (DRAGONS_BREATH > 0 && LastSpellFire < 9 && dist <= ATTACK_DISTANCE && ai->GetManaPercent() >= 37)
+            else if (DRAGONS_BREATH > 0 && LastSpellFire < 9 && meleeReach && ai->GetManaPercent() >= 37)
             {
                 ai->CastSpell(DRAGONS_BREATH, *pTarget);
                 SpellSequence = SPELL_ARCANE;
@@ -290,7 +290,7 @@ void PlayerbotMageAI::DoNextCombatManeuver(Unit *pTarget)
                 LastSpellArcane = LastSpellArcane + 1;
                 break;
             }
-            else if (ARCANE_EXPLOSION > 0 && LastSpellArcane < 3 && ai->GetAttackerCount() >= 3 && dist <= ATTACK_DISTANCE && ai->GetManaPercent() >= 27)
+            else if (ARCANE_EXPLOSION > 0 && LastSpellArcane < 3 && ai->GetAttackerCount() >= 3 && meleeReach && ai->GetManaPercent() >= 27)
             {
                 ai->CastSpell(ARCANE_EXPLOSION, *pTarget);
                 SpellSequence = SPELL_FROST;

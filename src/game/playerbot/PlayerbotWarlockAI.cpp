@@ -120,8 +120,8 @@ void PlayerbotWarlockAI::DoNextCombatManeuver(Unit *pTarget)
         if (healthStone)
             ai->UseItem(healthStone);
     }
-    float dist = m_bot->GetCombatDistance(pTarget);
-    if (dist > ATTACK_DISTANCE && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
+    bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
+    if (!meleeReach && ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED)
     {
         // switch to ranged combat
         ai->SetCombatStyle(PlayerbotAI::COMBAT_RANGED);

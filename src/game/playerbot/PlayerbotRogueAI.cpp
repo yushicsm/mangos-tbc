@@ -103,7 +103,7 @@ void PlayerbotRogueAI::DoNextCombatManeuver(Unit *pTarget)
 
     Player *m_bot = GetPlayerBot();
     Unit* pVictim = pTarget->getVictim();
-    float fTargetDist = m_bot->GetCombatDistance(pTarget);
+    bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
 
     // TODO: make this work better...
     /*if (pVictim)
@@ -147,7 +147,7 @@ void PlayerbotRogueAI::DoNextCombatManeuver(Unit *pTarget)
         SpellSequence = RogueCombat;
 
     // we fight in melee, target is not in range, skip the next part!
-    if (fTargetDist > ATTACK_DISTANCE)
+    if (!meleeReach)
         return;
 
     std::ostringstream out;

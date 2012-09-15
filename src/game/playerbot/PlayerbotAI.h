@@ -151,9 +151,8 @@ public:
         BOTSTATE_DEADRELEASED,      // we released as ghost and wait to revive
         BOTSTATE_LOOTING,           // looting mode, used just after combat
         BOTSTATE_FLYING,            // bot is flying
-        BOTSTATE_ENCHANT,           // bot is enchanting
-        BOTSTATE_CRAFT,             // bot is crafting
-        BOTSTATE_TAME               // bot hunter taming
+        BOTSTATE_TAME,              // bot hunter taming
+        BOTSTATE_DELAYED            // bot delay action
     };
 
     enum CollectionFlags
@@ -178,17 +177,18 @@ public:
     {
         NONE                        = 0x00,  // do nothing
         SELL_ITEMS                  = 0x01,  // sell items
-        REPAIR_ITEMS                = 0x02,  // repair items
-        ADD_AUCTION                 = 0x03,  // add auction
-        REMOVE_AUCTION              = 0x04,  // remove auction
-        LIST_AUCTION                = 0x05,  // list bot auctions
-        RESET_TALENTS               = 0x06,  // reset all talents
-        BANK_WITHDRAW               = 0x07,  // withdraw item from bank
-        BANK_DEPOSIT                = 0x08,  // deposit item in bank
-        BANK_BALANCE                = 0x09,  // list bot bank balance
-        LIST_QUEST                  = 0x0A,  // list quests
-        END_QUEST                   = 0x0B,  // turn in quests
-        TAKE_QUEST                  = 0x0C   // take quest
+        BUY_ITEMS                   = 0x02,  // buy items
+        REPAIR_ITEMS                = 0x03,  // repair items
+        ADD_AUCTION                 = 0x04,  // add auction
+        REMOVE_AUCTION              = 0x05,  // remove auction
+        LIST_AUCTION                = 0x06,  // list bot auctions
+        RESET_TALENTS               = 0x07,  // reset all talents
+        BANK_WITHDRAW               = 0x08,  // withdraw item from bank
+        BANK_DEPOSIT                = 0x09,  // deposit item in bank
+        BANK_BALANCE                = 0x0A,  // list bot bank balance
+        LIST_QUEST                  = 0x0B,  // list quests
+        END_QUEST                   = 0x0C,  // turn in quests
+        TAKE_QUEST                  = 0x0D   // take quest
     };
 
     enum AnnounceFlags
@@ -385,7 +385,9 @@ public:
     bool CastPetSpell(uint32 spellId, Unit* target = NULL);
     bool Buff(uint32 spellId, Unit * target, void (*beforeCast)(Player *) = NULL);
     bool SelfBuff(uint32 spellId);
-    bool IsInRange(Unit* Target, uint32 spellId);
+    bool In_Range(Unit* Target, uint32 spellId);
+    bool In_Reach(Unit* Target, uint32 spellId);
+    bool CanReachWithSpellAttack(Unit* target);
 
     void UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID);
     void UseItem(Item *item, uint8 targetInventorySlot);
@@ -404,8 +406,6 @@ public:
     Unit *gPrimtarget;
     Unit *gSectarget;
     uint32 gQuestFetch;
-    uint8 gPrimOrder;
-    uint8 gSecOrder;
 
     bool m_AutoEquipToggle;             //switch for autoequip
     uint32 SellWhite;                   //switch for white item auto sell
@@ -478,6 +478,8 @@ public:
     CombatOrderType GetCombatOrder() { return this->m_combatOrder; }
     bool IsTank() { return (m_combatOrder & ORDERS_TANK) ? true : false; }
     bool IsHealer() { return (m_combatOrder & ORDERS_HEAL) ? true : false; }
+    bool IsDPS() { return (m_combatOrder & ORDERS_ASSIST) ? true : false; }
+    bool Impulse() { srand ( time(NULL) ); return(((rand() % 100) > 50) ? true : false); }
     ResistType GetResistType() { return this->m_resistType; }
     void SetMovementOrder(MovementOrderType mo, Unit *followTarget = 0);
     MovementOrderType GetMovementOrder() { return this->m_movementOrder; }
@@ -493,7 +495,7 @@ public:
     uint32 GetFreeBagSpace() const;
     void SellGarbage(Player& player, bool listNonTrash = true, bool bDetailTrashSold = false, bool verbose = true);
     void Sell(const uint32 itemid);
-    void Buy(ObjectGuid vendorguid, const uint32 itemid);
+    void Buy(Creature* vendor, const uint32 itemid);
     std::string DropItem(const uint32 itemid);
     void AddAuction(const uint32 itemid, Creature* aCreature);
     void ListAuctions();
@@ -604,6 +606,7 @@ private:
     time_t m_TimeDoneEating;
     time_t m_TimeDoneDrinking;
     uint32 m_CurrentlyCastingSpellId;
+    uint32 m_CraftSpellId;
     //bool m_IsFollowingMaster;
 
     // if master commands bot to do something, store here until updateAI
@@ -624,6 +627,9 @@ private:
     Unit *m_targetProtect;      // check
 
     Unit *m_followTarget;       // whom to follow in non combat situation?
+
+    uint8 gPrimOrder;
+    uint8 gSecOrder;
 
     uint32 FISHING,
         HERB_GATHERING,

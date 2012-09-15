@@ -81,16 +81,15 @@ bool PlayerbotWarriorAI::DoFirstCombatManeuver(Unit *pTarget)
 {
     Player *m_bot = GetPlayerBot();
     PlayerbotAI *ai = GetAI();
-    PlayerbotAI::CombatOrderType co = ai->GetCombatOrder();
     float fTargetDist = m_bot->GetDistance(pTarget);
 
-    if ((co & PlayerbotAI::ORDERS_TANK) && DEFENSIVE_STANCE > 0 && !m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(DEFENSIVE_STANCE))
+    if (ai->IsTank() && DEFENSIVE_STANCE > 0 && !m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(DEFENSIVE_STANCE))
     {
         if (ai->GetManager()->m_confDebugWhisper)
             ai->TellMaster("First > Defensive Stance (%d)", DEFENSIVE_STANCE);
         return true;
     }
-    else if ((co & PlayerbotAI::ORDERS_TANK) && TAUNT > 0 && m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(TAUNT, *pTarget))
+    else if (ai->IsTank() && TAUNT > 0 && m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(TAUNT, *pTarget))
     {
         if (ai->GetManager()->m_confDebugWhisper)
             ai->TellMaster("First > Taunt (%d)", TAUNT);
@@ -147,13 +146,12 @@ void PlayerbotWarriorAI::DoNextCombatManeuver(Unit *pTarget)
     Player *m_bot = GetPlayerBot();
     Unit* pVictim = pTarget->getVictim();
     float fTargetDist = m_bot->GetDistance(pTarget);
-    PlayerbotAI::CombatOrderType co = ai->GetCombatOrder();
 
     // decide what stance to use
-    if ((co & PlayerbotAI::ORDERS_TANK) && !m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(DEFENSIVE_STANCE))
+    if (ai->IsTank() && !m_bot->HasAura(DEFENSIVE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(DEFENSIVE_STANCE))
         if (ai->GetManager()->m_confDebugWhisper)
             ai->TellMaster("Stance > Defensive");
-        else if (!(co & PlayerbotAI::ORDERS_TANK) && !m_bot->HasAura(BATTLE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(BATTLE_STANCE))
+        else if (!ai->IsTank() && !m_bot->HasAura(BATTLE_STANCE, EFFECT_INDEX_0) && ai->CastSpell(BATTLE_STANCE))
             if (ai->GetManager()->m_confDebugWhisper)
                 ai->TellMaster("Stance > Battle");
 

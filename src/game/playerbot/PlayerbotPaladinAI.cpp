@@ -151,7 +151,7 @@ void PlayerbotPaladinAI::DoNextCombatManeuver(Unit *pTarget)
     // damage spells
     Player *m_bot = GetPlayerBot();
     Group *m_group = m_bot->GetGroup();
-    float dist = m_bot->GetDistance(pTarget);
+    bool meleeReach = m_bot->CanReachWithMeleeAttack(pTarget);
     std::ostringstream out;
 
     //Shield master if low hp.
@@ -252,7 +252,7 @@ void PlayerbotPaladinAI::DoNextCombatManeuver(Unit *pTarget)
                 CombatCounter++;
                 break;
             }
-            else if (DIVINE_STORM > 0 && CombatCounter < 7 && ai->GetAttackerCount() >= 3 && dist <= ATTACK_DISTANCE && ai->GetManaPercent() >= 12)
+            else if (DIVINE_STORM > 0 && CombatCounter < 7 && ai->GetAttackerCount() >= 3 && meleeReach && ai->GetManaPercent() >= 12)
             {
                 ai->CastSpell (DIVINE_STORM, *pTarget);
                 out << " Divine Storm";
@@ -266,7 +266,7 @@ void PlayerbotPaladinAI::DoNextCombatManeuver(Unit *pTarget)
                 CombatCounter++;
                 break;
             }
-            else if (HOLY_WRATH > 0 && CombatCounter < 9 && ai->GetAttackerCount() >= 3 && dist <= ATTACK_DISTANCE && ai->GetManaPercent() >= 24)
+            else if (HOLY_WRATH > 0 && CombatCounter < 9 && ai->GetAttackerCount() >= 3 && meleeReach && ai->GetManaPercent() >= 24)
             {
                 ai->CastSpell (HOLY_WRATH, *pTarget);
                 out << " Holy Wrath";
