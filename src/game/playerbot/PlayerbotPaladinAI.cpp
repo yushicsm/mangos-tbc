@@ -108,19 +108,19 @@ bool PlayerbotPaladinAI::HealTarget(Unit *target)
         {
             SpellAuraHolder *holder = itr->second;
             if ((1<<holder->GetSpellProto()->Dispel) & dispelMask)
-            {	
+            {
                 if(holder->GetSpellProto()->Dispel == DISPEL_DISEASE)
                     ai->CastSpell(DISPEL, *target);
                 return false;
             }
             else if ((1<<holder->GetSpellProto()->Dispel) & dispelMask2)
-            {	
+            {
                 if(holder->GetSpellProto()->Dispel == DISPEL_POISON)
                     ai->CastSpell(DISPEL, *target);
                 return false;
             }
             else if ((1<<holder->GetSpellProto()->Dispel) & dispelMask3 & (DISPEL == CLEANSE))
-            {	
+            {
                 if(holder->GetSpellProto()->Dispel == DISPEL_MAGIC)
                     ai->CastSpell(DISPEL, *target);
                 return false;

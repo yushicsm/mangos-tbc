@@ -78,7 +78,7 @@ bool PlayerbotPriestAI::HealTarget(Unit* target)
         {
             SpellAuraHolder *holder = itr->second;
             if ((1<<holder->GetSpellProto()->Dispel) & dispelMask)
-            {	
+            {
                 if(holder->GetSpellProto()->Dispel == DISPEL_DISEASE)
                     ai->CastSpell(CURE_DISEASE, *target);
                 return false;
@@ -137,7 +137,7 @@ void PlayerbotPriestAI::DoNextCombatManeuver(Unit *pTarget)
     if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_RANGED && !meleeReach)
         ai->SetCombatStyle(PlayerbotAI::COMBAT_RANGED);
     // if in melee range OR can't shoot OR have no ranged (wand) equipped
-    else if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_MELEE 
+    else if (ai->GetCombatStyle() != PlayerbotAI::COMBAT_MELEE
             && (meleeReach || SHOOT == 0 || !m_bot->GetWeaponForAttack(RANGED_ATTACK, true, true))
             && !ai->IsHealer())
         ai->SetCombatStyle(PlayerbotAI::COMBAT_MELEE);
@@ -441,7 +441,7 @@ void PlayerbotPriestAI::DoNonCombatActions()
 
             if (PRAYER_OF_SPIRIT && ai->HasSpellReagents(PRAYER_OF_SPIRIT) && ai->Buff(PRAYER_OF_SPIRIT, master))
                 return;
-			
+
             if (PRAYER_OF_SHADOW_PROTECTION && ai->HasSpellReagents(PRAYER_OF_SHADOW_PROTECTION) && ai->Buff(PRAYER_OF_SHADOW_PROTECTION, master))
                 return;
             }

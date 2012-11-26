@@ -75,7 +75,7 @@ bool PlayerbotDruidAI::HealTarget(Unit *target)
 {
     PlayerbotAI* ai = GetAI();
     uint8 hp = target->GetHealth() * 100 / target->GetMaxHealth();
-	
+
     //If spell exists and orders say we should be dispelling
     if ((REMOVE_CURSE > 0 || ABOLISH_POISON > 0) && ai->GetCombatOrder() != PlayerbotAI::ORDERS_NODISPEL)
     {
@@ -90,14 +90,14 @@ bool PlayerbotDruidAI::HealTarget(Unit *target)
             SpellAuraHolder *holder = itr->second;
             //I dont know what this does but it doesn't work without it
             if ((1<<holder->GetSpellProto()->Dispel) & dispelMask)
-            {	
+            {
                 //If the spell is dispellable and we can dispel it, do so
                 if((holder->GetSpellProto()->Dispel == DISPEL_CURSE) & (REMOVE_CURSE > 0))
                     ai->CastSpell(REMOVE_CURSE, *target);
                 return false;
             }
             else if ((1<<holder->GetSpellProto()->Dispel) & dispelMask2)
-            {	
+            {
                 if((holder->GetSpellProto()->Dispel == DISPEL_POISON) & (ABOLISH_POISON > 0))
                     ai->CastSpell(ABOLISH_POISON, *target);
                 return false;

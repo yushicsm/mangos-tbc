@@ -17,3 +17,4 @@ src/shared/revision_sql.h eol=lf
 
 # special files which must ignore whitespace
 *.patch      whitespace=-trailing-space
+
