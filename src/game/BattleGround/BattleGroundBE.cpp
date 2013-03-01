@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,24 +35,6 @@ BattleGroundBE::BattleGroundBE()
     m_StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_ARENA_THIRTY_SECONDS;
     m_StartMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_ARENA_FIFTEEN_SECONDS;
     m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_ARENA_HAS_BEGUN;
-}
-
-BattleGroundBE::~BattleGroundBE()
-{
-}
-
-void BattleGroundBE::Update(uint32 diff)
-{
-    BattleGround::Update(diff);
-
-    /*if (GetStatus() == STATUS_IN_PROGRESS)
-    {
-        // update something
-    }*/
-}
-
-void BattleGroundBE::StartingEventCloseDoors()
-{
 }
 
 void BattleGroundBE::StartingEventOpenDoors()
@@ -139,17 +121,6 @@ void BattleGroundBE::FillInitialWorldStates(WorldPacket& data, uint32& count)
     FillInitialWorldState(data, count, 0x9f1, GetAlivePlayersCountByTeam(ALLIANCE));
     FillInitialWorldState(data, count, 0x9f0, GetAlivePlayersCountByTeam(HORDE));
     FillInitialWorldState(data, count, 0x9f3, 1);
-}
-
-void BattleGroundBE::Reset()
-{
-    // call parent's class reset
-    BattleGround::Reset();
-}
-
-bool BattleGroundBE::SetupBattleGround()
-{
-    return true;
 }
 
 void BattleGroundBE::UpdatePlayerScore(Player* source, uint32 type, uint32 value)

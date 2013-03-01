@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,10 +43,10 @@
 #include "SQLStorages.h"
 
 GameObject::GameObject() : WorldObject(),
-    m_goInfo(NULL),
-    m_displayInfo(NULL),
     loot(this),
-    m_model(NULL)
+    m_model(NULL),
+    m_goInfo(NULL),
+    m_displayInfo(NULL)
 {
     m_objectType |= TYPEMASK_GAMEOBJECT;
     m_objectTypeId = TYPEID_GAMEOBJECT;

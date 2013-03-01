@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,15 @@
 // -----------------------------------  SQLStorageBase  ---------------------------------------- //
 
 SQLStorageBase::SQLStorageBase() :
-    m_recordCount(0),
-    m_maxEntry(0),
-    m_dstFieldCount(0),
-    m_srcFieldCount(0),
-    m_recordSize(0),
     m_tableName(NULL),
     m_entry_field(NULL),
     m_src_format(NULL),
     m_dst_format(NULL),
+    m_dstFieldCount(0),
+    m_srcFieldCount(0),
+    m_recordCount(0),
+    m_maxEntry(0),
+    m_recordSize(0),
     m_data(NULL)
 {}
 

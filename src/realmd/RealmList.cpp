@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "RealmList.h"
 #include "AuthCodes.h"
 #include "Util.h"                                           // for Tokens typedef
-#include "Policies/SingletonImp.h"
+#include "Policies/Singleton.h"
 #include "Database/DatabaseEnv.h"
 
 INSTANTIATE_SINGLETON_1(RealmList);
@@ -43,8 +43,8 @@ static RealmBuildInfo ExpectedRealmdClientBuilds[] =
     {11159, 3, 3, 0, 'a'},
     {10505, 3, 2, 2, 'a'},
     {8606,  2, 4, 3, ' '},
-    {6005,  1,12, 2, ' '},
-    {5875,  1,12, 1, ' '},
+    {6005,  1, 12, 2, ' '},
+    {5875,  1, 12, 1, ' '},
     {0,     0, 0, 0, ' '}                                   // terminator
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -313,6 +313,7 @@ void DungeonResetScheduler::LoadResetTimes()
 {
     time_t now = time(NULL);
     time_t today = (now / DAY) * DAY;
+    time_t nextWeek = today + (7 * DAY);
 
     // NOTE: Use DirectPExecute for tables that will be queried later
 
@@ -433,7 +434,7 @@ void DungeonResetScheduler::LoadResetTimes()
             CharacterDatabase.DirectPExecute("INSERT INTO instance_reset VALUES ('%u','" UI64FMTD "')", temp->map, (uint64)t);
         }
 
-        if (t < now)
+        if (t < now || t > nextWeek)
         {
             // assume that expired instances have already been cleaned
             // calculate the next reset time
@@ -942,14 +943,22 @@ void MapPersistentStateManager::LoadCreatureRespawnTimes()
         if (!data)
             continue;
 
-        if (mapId != data->mapid)
+        MapEntry const* mapEntry = sMapStore.LookupEntry(data->mapid);
+        if (!mapEntry)
             continue;
 
-        MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
-        if (!mapEntry || (mapEntry->Instanceable() != (instanceId != 0)))
-            continue;
+        if (instanceId)                                     // In instance - mapId must be data->mapid and mapEntry must be Instanceable
+        {
+            if (mapId != data->mapid || !mapEntry->Instanceable())
+                continue;
+        }
+        else                                                // Not in instance, mapEntry must not be Instanceable
+        {
+            if (mapEntry->Instanceable())
+                continue;
+        }
 
-        if (difficulty >= (!mapEntry->Instanceable() ? REGULAR_DIFFICULTY : MAX_DIFFICULTY))
+        if (difficulty >= (!mapEntry->Instanceable() ? REGULAR_DIFFICULTY + 1 : MAX_DIFFICULTY))
             continue;
 
         MapPersistentState* state = AddPersistentState(mapEntry, instanceId, Difficulty(difficulty), resetTime, mapEntry->IsDungeon(), true);
@@ -959,7 +968,6 @@ void MapPersistentStateManager::LoadCreatureRespawnTimes()
         state->SetCreatureRespawnTime(loguid, time_t(respawn_time));
 
         ++count;
-
     }
     while (result->NextRow());
 
@@ -1008,14 +1016,22 @@ void MapPersistentStateManager::LoadGameobjectRespawnTimes()
         if (!data)
             continue;
 
-        if (mapId != data->mapid)
+        MapEntry const* mapEntry = sMapStore.LookupEntry(data->mapid);
+        if (!mapEntry)
             continue;
 
-        MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
-        if (!mapEntry || (mapEntry->Instanceable() != (instanceId != 0)))
-            continue;
+        if (instanceId)                                     // In instance - mapId must be data->mapid and mapEntry must be Instanceable
+        {
+            if (mapId != data->mapid || !mapEntry->Instanceable())
+                continue;
+        }
+        else                                                // Not in instance, mapEntry must not be Instanceable
+        {
+            if (mapEntry->Instanceable())
+                continue;
+        }
 
-        if (difficulty >= (!mapEntry->Instanceable() ? REGULAR_DIFFICULTY : MAX_DIFFICULTY))
+        if (difficulty >= (!mapEntry->Instanceable() ? REGULAR_DIFFICULTY + 1 : MAX_DIFFICULTY))
             continue;
 
         MapPersistentState* state = AddPersistentState(mapEntry, instanceId, Difficulty(difficulty), resetTime, mapEntry->IsDungeon(), true);
@@ -1025,7 +1041,6 @@ void MapPersistentStateManager::LoadGameobjectRespawnTimes()
         state->SetGORespawnTime(loguid, time_t(respawn_time));
 
         ++count;
-
     }
     while (result->NextRow());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -479,9 +479,9 @@ bool find_sql_updates()
     pclose(cmd_pipe);
 
     // Add last milestone's file information
-    last_sql_rev[0] = 11785;
-    last_sql_nr[0] = 2;
-    sscanf("11785_02_characters_instance", "%s", last_sql_update[0]);
+    last_sql_rev[0] = 1350;
+    last_sql_nr[0] = 9;
+    sscanf("s1350_11716_09_characters_mail", "%s", last_sql_update[0]);
     last_sql_rev[2] = 10008;
     last_sql_nr[2] = 1;
     sscanf("10008_01_realmd_realmd_db_version", "%s", last_sql_update[2]);
@@ -672,7 +672,7 @@ bool generate_sql_makefile()
     if (!fout) { pclose(cmd_pipe); return false; }
 
     fprintf(fout,
-            "# Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>\n"
+            "# This file is part of the Continued-MaNGOS Project\n"
             "#\n"
             "# This program is free software; you can redistribute it and/or modify\n"
             "# it under the terms of the GNU General Public License as published by\n"

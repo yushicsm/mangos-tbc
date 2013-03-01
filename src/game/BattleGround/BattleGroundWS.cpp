@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,10 +34,6 @@ BattleGroundWS::BattleGroundWS()
     m_StartMessageIds[BG_STARTING_EVENT_SECOND] = LANG_BG_WS_START_ONE_MINUTE;
     m_StartMessageIds[BG_STARTING_EVENT_THIRD]  = LANG_BG_WS_START_HALF_MINUTE;
     m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_BG_WS_HAS_BEGUN;
-}
-
-BattleGroundWS::~BattleGroundWS()
-{
 }
 
 void BattleGroundWS::Update(uint32 diff)
@@ -87,10 +83,6 @@ void BattleGroundWS::Update(uint32 diff)
             }
         }
     }
-}
-
-void BattleGroundWS::StartingEventCloseDoors()
-{
 }
 
 void BattleGroundWS::StartingEventOpenDoors()
@@ -495,11 +487,6 @@ void BattleGroundWS::HandleAreaTrigger(Player* source, uint32 trigger)
             source->GetSession()->SendAreaTriggerMessage("Warning: Unhandled AreaTrigger in Battleground: %u", trigger);
             break;
     }
-}
-
-bool BattleGroundWS::SetupBattleGround()
-{
-    return true;
 }
 
 void BattleGroundWS::Reset()

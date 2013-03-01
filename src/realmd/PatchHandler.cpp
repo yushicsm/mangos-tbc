@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -162,7 +162,7 @@ void PatchCache::LoadPatchMD5(const char* szFileName)
     MD5_CTX ctx;
     MD5_Init(&ctx);
 
-    const size_t check_chunk_size = 4*1024;
+    const size_t check_chunk_size = 4 * 1024;
 
     ACE_UINT8 buf[check_chunk_size];
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2012 MaNGOS <http://getmangos.com/>
+ * This file is part of the Continued-MaNGOS Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,6 @@ BattleGroundEY::BattleGroundEY()
     m_StartMessageIds[BG_STARTING_EVENT_FOURTH] = LANG_BG_EY_HAS_BEGUN;
 }
 
-BattleGroundEY::~BattleGroundEY()
-{
-}
-
 void BattleGroundEY::Update(uint32 diff)
 {
     BattleGround::Update(diff);
@@ -70,10 +66,6 @@ void BattleGroundEY::Update(uint32 diff)
         else
             m_flagRespawnTimer -= diff;
     }
-}
-
-void BattleGroundEY::StartingEventCloseDoors()
-{
 }
 
 void BattleGroundEY::StartingEventOpenDoors()
