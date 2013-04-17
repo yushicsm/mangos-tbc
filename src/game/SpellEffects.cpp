@@ -744,6 +744,26 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->CastSpell(m_caster, spell_id, true, NULL);
                     return;
                 }
+                case 17009:                                 // Voodoo
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    uint32 spell_id = 0;
+                    switch (urand(0, 6))
+                    {
+                        case 0: spell_id = 16707; break;    // Hex
+                        case 1: spell_id = 16708; break;    // Hex
+                        case 2: spell_id = 16709; break;    // Hex
+                        case 3: spell_id = 16711; break;    // Grow
+                        case 4: spell_id = 16712; break;    // Special Brew
+                        case 5: spell_id = 16713; break;    // Ghostly
+                        case 6: spell_id = 16716; break;    // Launch
+                    }
+
+                    m_caster->CastSpell(unitTarget, spell_id, true, NULL, NULL, m_originalCasterGUID, m_spellInfo);
+                    return;
+                }
                 case 17251:                                 // Spirit Healer Res
                 {
                     if (!unitTarget)
@@ -764,7 +784,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (!itemTarget && m_caster->GetTypeId() != TYPEID_PLAYER)
                         return;
 
-                    uint32 spell_id = roll_chance_i(50)
+                    uint32 spell_id = urand(0, 1)
                                       ? 17269               // Create Resonating Skull
                                       : 17270;              // Create Bone Dust
 
@@ -825,6 +845,22 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
 
                     map->Add(pGameObj);
 
+                    return;
+                }
+                case 19869:                                 // Dragon Orb
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER || unitTarget->HasAura(23958))
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 19832, true);
+                    return;
+                }
+                case 20037:                                 // Explode Orb Effect
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 20038, true);
                     return;
                 }
                 case 20577:                                 // Cannibalize
@@ -1275,6 +1311,14 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->CastSpell(unitTarget, 40932, true);
                     return;
                 }
+                case 40869:                                 // Fatal Attraction
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    m_caster->CastSpell(unitTarget, 41001, true);
+                    return;
+                }
                 case 40962:                                 // Blade's Edge Terrace Demon Boss Summon Branch
                 {
                     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
@@ -1289,6 +1333,16 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                         case 4: spell_id = 40961; break;    // Blade's Edge Terrace Demon Boss Summon 4
                     }
                     unitTarget->CastSpell(unitTarget, spell_id, true);
+                    return;
+                }
+                case 41333:                                 // Empyreal Equivalency
+                {
+                    if (!unitTarget)
+                        return;
+
+                    // Equilize the health of all targets based on the corresponding health percent
+                    float health_diff = (float)unitTarget->GetMaxHealth() / (float)m_caster->GetMaxHealth();
+                    unitTarget->SetHealth(m_caster->GetHealth() * health_diff);
                     return;
                 }
                 case 42287:                                 // Salvage Wreckage
@@ -1432,6 +1486,40 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 {
                     // Emissary of Hate Credit
                     m_caster->CastSpell(m_caster, 45088, true);
+                    return;
+                }
+                case 45235:                                 // Blaze
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 45236, true, NULL, NULL, m_caster->GetObjectGuid());
+                    return;
+                }
+                case 45785:                                 // Sinister Reflection Clone
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, m_spellInfo->CalculateSimpleValue(eff_idx), true);
+                    return;
+                }
+                case 45833:                                 // Power of the Blue Flight
+                {
+                    if (!unitTarget)
+                        return;
+
+                    unitTarget->CastSpell(unitTarget, 45836, true);
+                    return;
+                }
+                case 45892:                                 // Sinister Reflection
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    // Summon 4 clones of the same player
+                    for (uint8 i = 0; i < 4; ++i)
+                        unitTarget->CastSpell(unitTarget, 45891, true, NULL, NULL, m_caster->GetObjectGuid());
                     return;
                 }
                 case 45976:                                 // Open Portal
@@ -4822,6 +4910,14 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     unitTarget->CastSpell(unitTarget, 24321, true, NULL, NULL, m_caster->GetObjectGuid());
                     return;
                 }
+                case 24324:                                 // Blood Siphon
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    unitTarget->CastSpell(m_caster, unitTarget->HasAura(24321) ? 24323 : 24322, true);
+                    return;
+                }
                 case 24590:                                 // Brittle Armor - need remove one 24575 Brittle Armor aura
                     unitTarget->RemoveAuraHolderFromStack(24575);
                     return;
@@ -5131,6 +5227,14 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
 
                     // Cast Focus fire on caster
                     unitTarget->CastSpell(m_caster, 32300, true);
+                    return;
+                }
+                case 33676:                                 // Incite Chaos
+                {
+                    if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    m_caster->CastSpell(unitTarget, 33684, true);
                     return;
                 }
                 case 35865:                                 // Summon Nether Vapor

@@ -1794,6 +1794,12 @@ void Aura::TriggerSpell()
                     caster->CastSpell(triggerTarget, trigger_spell_id, true, NULL, this);
                 return;
             }
+            case 43149:                                     // Claw Rage
+            {
+                // Need to provide explicit target for trigger spell target combination
+                target->CastSpell(target->getVictim(), trigger_spell_id, true, NULL, this);
+                return;
+            }
             case 44883:                                     // Encapsulate
             {
                 // Self cast spell, hence overwrite caster (only channeled spell where the triggered spell deals dmg to SELF)
@@ -2397,6 +2403,19 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                         target->CastSpell(target, 42517, true);
                     return;
                 }
+                case 42583:                                 // Claw Rage
+                {
+                    Unit* caster = GetCaster();
+                    if (!caster || target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    if (apply)
+                        caster->FixateTarget(target);
+                    else if (target->GetObjectGuid() == caster->GetFixateTargetGuid())
+                        caster->FixateTarget(NULL);
+
+                    return;
+                }
                 case 27978:
                 case 40131:
                     if (apply)
@@ -2554,7 +2573,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
         return;
     }
 
-    if (GetEffIndex() == EFFECT_INDEX_0 && target->GetTypeId() == TYPEID_PLAYER)
+    if (target->GetTypeId() == TYPEID_PLAYER)
     {
         SpellAreaForAreaMapBounds saBounds = sSpellMgr.GetSpellAreaForAuraMapBounds(GetId());
         if (saBounds.first != saBounds.second)
@@ -2563,17 +2582,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             target->GetZoneAndAreaId(zone, area);
 
             for (SpellAreaForAreaMap::const_iterator itr = saBounds.first; itr != saBounds.second; ++itr)
-            {
-                // some auras remove at aura remove
-                if (!itr->second->IsFitToRequirements((Player*)target, zone, area))
-                    target->RemoveAurasDueToSpell(itr->second->spellId);
-                // some auras applied at aura apply
-                else if (itr->second->autocast)
-                {
-                    if (!target->HasAura(itr->second->spellId, EFFECT_INDEX_0))
-                        target->CastSpell(target, itr->second->spellId, true);
-                }
-            }
+                itr->second->ApplyOrRemoveSpellIfCan((Player*)target, zone, area, false);
         }
     }
 
@@ -3619,9 +3628,8 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
         {
             ((Player*)target)->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
             target->SetStandState(UNIT_STAND_STATE_STAND);// in 1.5 client
+            target->SetRoot(true);
         }
-
-        target->SetRoot(true);
 
         // Summon the Naj'entus Spine GameObject on target if spell is Impaling Spine
         if (GetId() == 39837)
