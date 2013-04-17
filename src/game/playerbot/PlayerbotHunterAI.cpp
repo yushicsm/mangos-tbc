@@ -155,7 +155,7 @@ void PlayerbotHunterAI::DoNextCombatManeuver(Unit *pTarget)
         if (ASPECT_OF_THE_HAWK > 0 && !m_bot->HasAura(ASPECT_OF_THE_HAWK, EFFECT_INDEX_0))
             ai->CastSpell(ASPECT_OF_THE_HAWK, *m_bot);
 
-        // ai->TellMaster("target dist %f",m_bot->GetCombatDistance(pTarget));
+        // ai->TellMaster("target dist %f",m_bot->GetCombatDistance(pTarget, true));
         if (AUTO_SHOT > 0)
         {
             if (m_bot->isAttackReady(RANGED_ATTACK))
