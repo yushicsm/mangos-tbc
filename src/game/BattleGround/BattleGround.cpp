@@ -373,7 +373,6 @@ void BattleGround::Update(uint32 diff)
             }
             m_PrematureCountDownTimer = newtime;
         }
-
     }
     else if (m_PrematureCountDown)
         m_PrematureCountDown = false;
@@ -445,7 +444,6 @@ void BattleGround::Update(uint32 diff)
             }
             else
             {
-
                 PlaySoundToAll(SOUND_BG_START);
 
                 for (BattleGroundPlayerMap::const_iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)

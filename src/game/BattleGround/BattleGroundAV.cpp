@@ -377,7 +377,6 @@ void BattleGroundAV::HandleAreaTrigger(Player* source, uint32 trigger)
 
 void BattleGroundAV::UpdatePlayerScore(Player* source, uint32 type, uint32 value)
 {
-
     BattleGroundScoreMap::iterator itr = m_PlayerScores.find(source->GetObjectGuid());
     if (itr == m_PlayerScores.end())                        // player not found...
         return;
@@ -815,5 +814,4 @@ void BattleGroundAV::Reset()
         InitNode(i, BG_AV_TEAM_HORDE, true);
 
     InitNode(BG_AV_NODES_SNOWFALL_GRAVE, BG_AV_TEAM_NEUTRAL, false);                            // give snowfall neutral owner
-
 }

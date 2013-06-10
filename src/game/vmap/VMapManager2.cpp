@@ -30,7 +30,6 @@ using G3D::Vector3;
 
 namespace VMAP
 {
-
     //=========================================================
 
     VMapManager2::VMapManager2()
@@ -287,5 +286,4 @@ namespace VMAP
     {
         return StaticMapTree::CanLoadMap(std::string(pBasePath), pMapId, x, y);
     }
-
 } // namespace VMAP

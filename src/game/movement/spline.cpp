@@ -22,7 +22,6 @@
 
 namespace Movement
 {
-
     SplineBase::EvaluationMethtod SplineBase::evaluators[SplineBase::ModesEnd] =
     {
         &SplineBase::EvaluateLinear,
@@ -304,5 +303,4 @@ namespace Movement
 
         return str.str();
     }
-
 }
