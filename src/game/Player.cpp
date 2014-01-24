@@ -1581,9 +1581,9 @@ void Player::ToggleDND()
     ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_DND);
 }
 
-uint8 Player::GetChatTag() const
+ChatTagFlags Player::GetChatTag() const
 {
-    uint8 tag = CHAT_TAG_NONE;
+    ChatTagFlags tag = CHAT_TAG_NONE;
 
     if (isAFK())
         tag |= CHAT_TAG_AFK;
@@ -4633,7 +4633,7 @@ void Player::CleanupChannels()
     {
         Channel* ch = *m_channels.begin();
         m_channels.erase(m_channels.begin());               // remove from player's channel list
-        ch->Leave(GetObjectGuid(), false);                  // not send to client, not remove from player's channel list
+        ch->Leave(this, false);                             // not send to client, not remove from player's channel list
         if (ChannelMgr* cMgr = channelMgr(GetTeam()))
             cMgr->LeftChannel(ch->GetName());               // deleted channel if empty
     }
@@ -4677,10 +4677,10 @@ void Player::UpdateLocalChannels(uint32 newZone)
 
         if ((*i) != new_channel)
         {
-            new_channel->Join(GetObjectGuid(), "");         // will output Changed Channel: N. Name
+            new_channel->Join(this, "");                    // will output Changed Channel: N. Name
 
             // leave old channel
-            (*i)->Leave(GetObjectGuid(), false);            // not send leave channel, it already replaced at client
+            (*i)->Leave(this, false);                       // not send leave channel, it already replaced at client
             std::string name = (*i)->GetName();             // store name, (*i)erase in LeftChannel
             LeftChannel(*i);                                // remove from player's channel list
             cMgr->LeftChannel(name);                        // delete if empty
@@ -4695,7 +4695,7 @@ void Player::LeaveLFGChannel()
     {
         if ((*i)->IsLFG())
         {
-            (*i)->Leave(GetObjectGuid());
+            (*i)->Leave(this);
             break;
         }
     }
@@ -6796,20 +6796,7 @@ void Player::_ApplyItemBonuses(ItemPrototype const* proto, uint8 slot, bool appl
         armor += uint32(proto->ArmorDamageModifier);
 
     if (armor)
-    {
-        switch (proto->InventoryType)
-        {
-            case INVTYPE_TRINKET:
-            case INVTYPE_NECK:
-            case INVTYPE_CLOAK:
-            case INVTYPE_FINGER:
-                HandleStatModifier(UNIT_MOD_ARMOR, TOTAL_VALUE, float(armor), apply);
-                break;
-            default:
-                HandleStatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(armor), apply);
-                break;
-        }
-    }
+        HandleStatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(armor), apply);
 
     if (proto->Block)
         HandleBaseModValue(SHIELD_BLOCK_VALUE, FLAT_MOD, float(proto->Block), apply);
@@ -17238,36 +17225,24 @@ Pet* Player::GetMiniPet() const
     return GetMap()->GetPet(m_miniPetGuid);
 }
 
-void Player::BuildPlayerChat(WorldPacket* data, uint8 msgtype, const std::string& text, uint32 language) const
-{
-    *data << uint8(msgtype);
-    *data << uint32(language);
-    *data << ObjectGuid(GetObjectGuid());
-    *data << uint32(0);                                     // 2.1.0
-    *data << ObjectGuid(GetObjectGuid());
-    *data << uint32(text.length() + 1);
-    *data << text;
-    *data << uint8(GetChatTag());
-}
-
 void Player::Say(const std::string& text, const uint32 language)
 {
-    WorldPacket data(SMSG_MESSAGECHAT, 200);
-    BuildPlayerChat(&data, CHAT_MSG_SAY, text, language);
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_SAY, text.c_str(), Language(language), GetChatTag(), GetObjectGuid(), GetName());
     SendMessageToSetInRange(&data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_SAY), true);
 }
 
 void Player::Yell(const std::string& text, const uint32 language)
 {
-    WorldPacket data(SMSG_MESSAGECHAT, 200);
-    BuildPlayerChat(&data, CHAT_MSG_YELL, text, language);
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_YELL, text.c_str(), Language(language), GetChatTag(), GetObjectGuid(), GetName());
     SendMessageToSetInRange(&data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_YELL), true);
 }
 
 void Player::TextEmote(const std::string& text)
 {
-    WorldPacket data(SMSG_MESSAGECHAT, 200);
-    BuildPlayerChat(&data, CHAT_MSG_EMOTE, text, LANG_UNIVERSAL);
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_EMOTE, text.c_str(), LANG_UNIVERSAL, GetChatTag(), GetObjectGuid(), GetName());
     SendMessageToSetInRange(&data, sWorld.getConfig(CONFIG_FLOAT_LISTEN_RANGE_TEXTEMOTE), true, !sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHAT));
 }
 
@@ -17278,15 +17253,15 @@ void Player::Whisper(const std::string& text, uint32 language, ObjectGuid receiv
 
     Player* rPlayer = sObjectMgr.GetPlayer(receiver);
 
-    WorldPacket data(SMSG_MESSAGECHAT, 200);
-    BuildPlayerChat(&data, CHAT_MSG_WHISPER, text, language);
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, text.c_str(), Language(language), GetChatTag(), GetObjectGuid(), GetName());
     rPlayer->GetSession()->SendPacket(&data);
 
     // not send confirmation for addon messages
     if (language != LANG_ADDON)
     {
-        data.Initialize(SMSG_MESSAGECHAT, 200);
-        rPlayer->BuildPlayerChat(&data, CHAT_MSG_REPLY, text, language);
+        data.clear();
+        ChatHandler::BuildChatPacket(data, CHAT_MSG_REPLY, text.c_str(), Language(language), CHAT_TAG_NONE, rPlayer->GetObjectGuid());
         GetSession()->SendPacket(&data);
     }
 
