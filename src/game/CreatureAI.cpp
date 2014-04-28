@@ -203,15 +203,15 @@ class AiDelayEventAround : public BasicEvent
     private:
         AiDelayEventAround();
 
-        ObjectGuid m_invokerGuid;
-        GuidVector m_receiverGuids;
-        Creature&  m_owner;
-
         AIEventType m_eventType;
+        ObjectGuid m_invokerGuid;
+        Creature&  m_owner;
         uint32 m_miscValue;
+
+        GuidVector m_receiverGuids;
 };
 
-void CreatureAI::SendAIEvent(AIEventType eventType, Unit* pInvoker, uint32 uiDelay, float fRadius, uint32 miscValue /*=0*/) const
+void CreatureAI::SendAIEventAround(AIEventType eventType, Unit* pInvoker, uint32 uiDelay, float fRadius, uint32 miscValue /*=0*/) const
 {
     if (fRadius > 0)
     {
