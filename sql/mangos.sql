@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` varchar(120) DEFAULT NULL,
   `creature_ai_version` varchar(120) DEFAULT NULL,
-  `required_s2092_xxxxx_01_mangos_creature_template_classlevelstats` bit(1) DEFAULT NULL
+  `required_s2138_12670_01_mangos_spell_template` bit(1) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=FIXED COMMENT='Used DB version notes';
 
 --
@@ -422,7 +422,7 @@ INSERT INTO `command` VALUES
 ('ahbot items ratio alliance',3,'Syntax: .ahbot items ratio alliance $allianceratio\r\n\r\nSet ratio of items in alliance auction house.'),
 ('ahbot items ratio horde',3,'Syntax: .ahbot items ratio horde $horderatio\r\n\r\nSet ratio of items in horde auction house.'),
 ('ahbot items ratio neutral',3,'Syntax: .ahbot items ratio neutral $neutralratio\r\n\r\nSet ratio of items in $neutral auction house.'),
-('ahbot rebuild',3,'Syntax: .ahbot rebuild [all]\r\n\r\nExpire all actual auction of ahbot except bided by player. Binded auctions included to expire if \"all\" option used. Ahbot re-fill auctions base at current settings then.'),
+('ahbot rebuild',3,'Syntax: .ahbot rebuild [all]\r\n\r\nExpire all actual auction of ahbot except bided by player. Bided auctions could be forced to expire by using \"all\" option. AHBot will re-fill auctions using current settings.'),
 ('ahbot reload',3,'Syntax: .ahbot reload\r\n\r\nReload AHBot settings from configuration file.'),
 ('ahbot status',3,'Syntax: .ahbot status [all]\r\n\r\nShow current ahbot state data in short form, and with \"all\" with details.'),
 ('announce',1,'Syntax: .announce $MessageToBroadcast\r\n\r\nSend a global message to all players online in chat log.'),
@@ -430,7 +430,7 @@ INSERT INTO `command` VALUES
 ('auction alliance',3,'Syntax: .auction alliance\r\n\r\nShow alliance auction store independent from your team.'),
 ('auction goblin',3,'Syntax: .auction goblin\r\n\r\nShow goblin auction store common for all teams.'),
 ('auction horde',3,'Syntax: .auction horde\r\n\r\nShow horde auction store independent from your team.'),
-('auction item',3,'Syntax: .auction item (alliance|horde|goblin) #itemid[:#itemcount] [[[#minbid] #buyout] [short|long|verylong]\r\n\r\nAdd new item (in many stackes if amount grater stack size) to specific auction house at short|long|verylogn perios similar same settings in auction in game dialog. Created auction not have owner.'),
+('auction item',3,'Syntax: .auction item (alliance|horde|goblin) #itemid[:#itemcount] [[[#minbid] #buyout] [short|long|verylong]\r\n\r\nAdd new item to an specific auction house at short|long|verylong periods. Periods are the same as the ones in the in-game dialog. Created auction does not have an owner.'),
 ('aura',3,'Syntax: .aura #spellid\r\n\r\nAdd the aura from spell #spellid to the selected Unit.'),
 ('ban account',3,'Syntax: .ban account $Name $bantime $reason\r\nBan account kick player.\r\n$bantime: negative value leads to permban, otherwise use a timestring like \"4d20h3s\".'),
 ('ban character',3,'Syntax: .ban character $Name $bantime $reason\r\nBan account and kick player.\r\n$bantime: negative value leads to permban, otherwise use a timestring like \"4d20h3s\".'),
@@ -1266,7 +1266,7 @@ CREATE TABLE `creature_template` (
   `Family` tinyint(4) NOT NULL DEFAULT '0',
   `CreatureType` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `InhabitType` tinyint(3) unsigned NOT NULL DEFAULT '3',
-  `RegenerateHealth` tinyint(3) unsigned NOT NULL DEFAULT '1',
+  `RegenerateStats` tinyint(3) unsigned NOT NULL DEFAULT '3',
   `RacialLeader` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `NpcFlags` int(10) unsigned NOT NULL DEFAULT '0',
   `UnitFlags` int(10) unsigned NOT NULL DEFAULT '0',
@@ -1279,7 +1279,7 @@ CREATE TABLE `creature_template` (
   `Rank` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `Expansion` tinyint(3) NOT NULL DEFAULT '-1',
   `HealthMultiplier` float NOT NULL DEFAULT '1',
-  `ManaMultiplier` float NOT NULL DEFAULT '1',
+  `PowerMultiplier` float NOT NULL DEFAULT '1',
   `DamageMultiplier` float NOT NULL DEFAULT '1',
   `DamageVariance` float NOT NULL DEFAULT '1',
   `ArmorMultiplier` float NOT NULL DEFAULT '1',
@@ -15514,6 +15514,7 @@ LOCK TABLES `spell_template` WRITE;
 INSERT INTO `spell_template` VALUES
 -- id   proc_flags chnce dur  ef0 tarA0 rad  aur  misc    miscB, trigger
 (21387, 0x00000028,  15,  21,   6,   1,   0,  42, 0,      0,     21388, 'Melt-Weapon trigger aura related used by Ragnaros'),
+(21883, 0x00000180, 101, 225,  76,  22,   0,   0, 178904, 0,     0,     'Summon Healed Celebrian Vine'),
 (23363, 0x00000000, 101,  21,  76,  18,   0,   0, 179804, 0,     0,     'Summon Drakonid Corpse Trigger'),
 (25192, 0x00000000, 101,  21,  76,  18,   0,   0, 180619, 0,     0,     'Summon Ossirian Crystal'),
 (26133, 0x00000000, 101,  21,  76,  18,   0,   0, 180795, 0,     0,     'Summon Sandworm Base'),

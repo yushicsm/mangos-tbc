@@ -1003,8 +1003,9 @@ void Aura::TriggerSpell()
 //                    case 25544:
 //                        break;
                     case 9712:                              // Thaumaturgy Channel
-                        trigger_spell_id = 21029;
-                        break;
+                        if (Unit* caster = GetCaster())
+                            caster->CastSpell(caster, 21029, true);
+                        return;
 //                    // Egan's Blaster
 //                    case 17368: break;
 //                    // Haunted
@@ -1542,10 +1543,23 @@ void Aura::TriggerSpell()
 //                    case 41629: break;
 //                    // Alert Drums
 //                    case 42177: break;
-//                    // Spout
-//                    case 42581: break;
-//                    // Spout
-//                    case 42582: break;
+                    case 42581:                             // Spout (left)
+                    case 42582:                             // Spout (right)
+                    {
+                        float newAngle = target->GetOrientation();
+
+                        if (auraId == 42581)
+                            newAngle += 2 * M_PI_F / 100;
+                        else
+                            newAngle -= 2 * M_PI_F / 100;
+
+                        newAngle = MapManager::NormalizeOrientation(newAngle);
+
+                        target->SetFacingTo(newAngle);
+
+                        target->CastSpell(target, auraSpellInfo->CalculateSimpleValue(m_effIndex), true);
+                        return;
+                    }
 //                    // Return to the Spirit Realm
 //                    case 44035: break;
 //                    // Curse of Boundless Agony
@@ -2797,8 +2811,8 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
         if (PowerType != POWER_MANA)
         {
             // reset power to default values only at power change
-            if (target->getPowerType() != PowerType)
-                target->setPowerType(PowerType);
+            if (target->GetPowerType() != PowerType)
+                target->SetPowerType(PowerType);
 
             switch (form)
             {
@@ -2876,7 +2890,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
             target->SetDisplayId(target->GetNativeDisplayId());
 
         if (target->getClass() == CLASS_DRUID)
-            target->setPowerType(POWER_MANA);
+            target->SetPowerType(POWER_MANA);
 
         target->SetShapeshiftForm(FORM_NONE);
 
@@ -4914,11 +4928,11 @@ void Aura::HandleModPowerRegen(bool apply, bool Real)       // drinking
     if (!Real)
         return;
 
-    Powers pt = GetTarget()->getPowerType();
+    Powers powerType = GetTarget()->GetPowerType();
     if (m_modifier.periodictime == 0)
     {
         // Anger Management (only spell use this aura for rage)
-        if (pt == POWER_RAGE)
+        if (powerType == POWER_RAGE)
             m_modifier.periodictime = 3000;
         else
             m_modifier.periodictime = 2000;
@@ -5031,7 +5045,7 @@ void  Aura::HandleAuraModIncreaseMaxHealth(bool apply, bool /*Real*/)
 void Aura::HandleAuraModIncreaseEnergy(bool apply, bool /*Real*/)
 {
     Unit* target = GetTarget();
-    Powers powerType = target->getPowerType();
+    Powers powerType = target->GetPowerType();
     if (int32(powerType) != m_modifier.m_miscvalue)
         return;
 
@@ -5042,7 +5056,7 @@ void Aura::HandleAuraModIncreaseEnergy(bool apply, bool /*Real*/)
 
 void Aura::HandleAuraModIncreaseEnergyPercent(bool apply, bool /*Real*/)
 {
-    Powers powerType = GetTarget()->getPowerType();
+    Powers powerType = GetTarget()->GetPowerType();
     if (int32(powerType) != m_modifier.m_miscvalue)
         return;
 
@@ -6141,7 +6155,7 @@ void Aura::PeriodicTick()
             Powers power = Powers(m_modifier.m_miscvalue);
 
             // power type might have changed between aura applying and tick (druid's shapeshift)
-            if (target->getPowerType() != power)
+            if (target->GetPowerType() != power)
                 return;
 
             Unit* pCaster = GetCaster();
@@ -6203,7 +6217,7 @@ void Aura::PeriodicTick()
             {
                 case 32960:                                 // Mark of Kazzak
                 {
-                    if (target->GetTypeId() == TYPEID_PLAYER && target->getPowerType() == POWER_MANA)
+                    if (target->GetTypeId() == TYPEID_PLAYER && target->GetPowerType() == POWER_MANA)
                     {
                         // Drain 5% of target's mana
                         pdamage = target->GetMaxPower(POWER_MANA) * 5 / 100;
@@ -6308,7 +6322,7 @@ void Aura::PeriodicTick()
 
             Powers powerType = Powers(m_modifier.m_miscvalue);
 
-            if (!target->isAlive() || target->getPowerType() != powerType)
+            if (!target->isAlive() || target->GetPowerType() != powerType)
                 return;
 
             // resilience reduce mana draining effect at spell crit damage reduction (added in 2.4)
@@ -6358,8 +6372,8 @@ void Aura::PeriodicTick()
             if (!target->isAlive())
                 return;
 
-            Powers pt = target->getPowerType();
-            if (int32(pt) != m_modifier.m_miscvalue)
+            Powers powerType = target->GetPowerType();
+            if (int32(powerType) != m_modifier.m_miscvalue)
                 return;
 
             if (spellProto->AuraInterruptFlags & AURA_INTERRUPT_FLAG_NOT_SEATED)
@@ -6376,8 +6390,8 @@ void Aura::PeriodicTick()
             // Anger Management
             // amount = 1+ 16 = 17 = 3,4*5 = 10,2*5/3
             // so 17 is rounded amount for 5 sec tick grow ~ 1 range grow in 3 sec
-            if (pt == POWER_RAGE)
-                target->ModifyPower(pt, m_modifier.m_amount * 3 / 5);
+            if (powerType == POWER_RAGE)
+                target->ModifyPower(powerType, m_modifier.m_amount * 3 / 5);
             break;
         }
         // Here tick dummy auras
@@ -6624,7 +6638,7 @@ void Aura::PeriodicDummyTick()
                     if (target->GetTypeId() != TYPEID_PLAYER)
                         return;
                     // Should be manauser
-                    if (target->getPowerType() != POWER_MANA)
+                    if (target->GetPowerType() != POWER_MANA)
                         return;
                     Unit* caster = GetCaster();
                     if (!caster)
@@ -6743,7 +6757,7 @@ void Aura::HandleAuraMirrorImage(bool apply, bool Real)
         pCreature->SetByteValue(UNIT_FIELD_BYTES_0, 0, caster->getRace());
         pCreature->SetByteValue(UNIT_FIELD_BYTES_0, 1, caster->getClass());
         pCreature->SetByteValue(UNIT_FIELD_BYTES_0, 2, caster->getGender());
-        pCreature->SetByteValue(UNIT_FIELD_BYTES_0, 3, caster->getPowerType());
+        pCreature->SetByteValue(UNIT_FIELD_BYTES_0, 3, caster->GetPowerType());
 
         pCreature->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_CLONED);
 
