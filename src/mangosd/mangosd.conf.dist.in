@@ -3,7 +3,7 @@
 #####################################
 
 [MangosdConf]
-ConfVersion=2013012201
+ConfVersion=2014110301
 
 ###################################################################################################################
 # CONNECTIONS AND DIRECTORIES
@@ -112,6 +112,12 @@ BindIP = "0.0.0.0"
 #        Default: 1 (unload grids)
 #                 0 (do not unload grids)
 #
+#    LoadAllGridsOnMaps
+#        Load grids of maps at server startup (if you have lot memory you can try it to have a living world always loaded)
+#        This also allow ALL creatures on the given maps to update their grid without any player around.
+#        Default: "" (don't load all grids at startup)
+#                 "mapId1[,mapId2[..]]" (DO load all grids on the given maps- Experimental and very resource consumming)
+#
 #    GridCleanUpDelay
 #        Grid clean up delay (in milliseconds)
 #        Default: 300000 (5 min)
@@ -206,6 +212,7 @@ PlayerLimit = 100
 SaveRespawnTimeImmediately = 1
 MaxOverspeedPings = 2
 GridUnload = 1
+LoadAllGridsOnMaps = ""
 GridCleanUpDelay = 300000
 MapUpdateInterval = 100
 ChangeWeatherInterval = 600000
@@ -718,8 +725,8 @@ LogColors = ""
 #
 #    ShowProgressBars
 #        Control show progress bars for load steps at server startup
-#        Default: 1 (true)
-#                 0 (false)
+#        Default: 0 (false)
+#                 1 (true)
 #
 #    WaitAtStartupError
 #        After startup error report wait <Enter> or some time before continue (and possible close console window)
@@ -796,9 +803,9 @@ OffhandCheckAtTalentsReset = 0
 PetUnsummonAtMount = 1
 Event.Announce = 0
 BeepAtStart = 1
-ShowProgressBars = 1
+ShowProgressBars = 0
 WaitAtStartupError = 0
-Motd = "Welcome to the Massive Network Game Object Server."
+Motd = "Welcome to the Continued Massive Network Game Object Server."
 PlayerCommands = 1
 
 ###################################################################################################################
@@ -987,7 +994,6 @@ ListenRange.TextEmote = 40
 ListenRange.Yell = 300
 GuidReserveSize.Creature = 100
 GuidReserveSize.GameObject = 100
-
 
 ###################################################################################################################
 # CHAT SETTINGS
@@ -1415,6 +1421,11 @@ Death.Ghost.RunSpeed.Battleground = 1.0
 #        Default: 0 (disable)
 #                 1 (enable)
 #
+#    Battleground.ScoreStatistics
+#        Enable Battleground scores storage in database.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
+#
 #    Battleground.InvitationType
 #        Set Battleground invitation type
 #        Default: 0 (normal - invite as much players to bg as possible, don't bother with ballance)
@@ -1435,6 +1446,7 @@ Death.Ghost.RunSpeed.Battleground = 1.0
 Battleground.CastDeserter = 1
 Battleground.QueueAnnouncer.Join = 0
 Battleground.QueueAnnouncer.Start = 0
+Battleground.ScoreStatistics = 0
 Battleground.InvitationType = 0
 BattleGround.PrematureFinishTimer = 300000
 BattleGround.PremadeGroupWaitForMatch = 1800000
