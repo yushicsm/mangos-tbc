@@ -120,6 +120,7 @@ class GridMap
 {
     private:
 
+        uint16 m_holes[16][16];
         uint32 m_flags;
 
         // Area data
@@ -156,6 +157,8 @@ class GridMap
         bool loadAreaData(FILE* in, uint32 offset, uint32 size);
         bool loadHeightData(FILE* in, uint32 offset, uint32 size);
         bool loadGridMapLiquidData(FILE* in, uint32 offset, uint32 size);
+        bool loadHolesData(FILE* in, uint32 offset, uint32 size);
+        bool isHole(int row, int col) const;
 
         // Get height functions and pointers
         typedef float(GridMap::*pGetHeightPtr)(float x, float y) const;
@@ -276,7 +279,7 @@ class MANGOS_DLL_SPEC TerrainInfo : public Referencable<AtomicLong>
 };
 
 // class for managing TerrainData object and all sort of geometry querying operations
-class MANGOS_DLL_DECL TerrainManager : public MaNGOS::Singleton<TerrainManager, MaNGOS::ClassLevelLockable<TerrainManager, ACE_Thread_Mutex> >
+class TerrainManager : public MaNGOS::Singleton<TerrainManager, MaNGOS::ClassLevelLockable<TerrainManager, ACE_Thread_Mutex> >
 {
         typedef UNORDERED_MAP<uint32,  TerrainInfo*> TerrainDataMap;
         friend class MaNGOS::OperatorNew<TerrainManager>;

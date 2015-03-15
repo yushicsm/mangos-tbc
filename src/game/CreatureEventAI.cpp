@@ -169,11 +169,13 @@ inline bool IsTimerBasedEvent(EventAI_Type type)
         case EVENT_T_TARGET_HP:
         case EVENT_T_TARGET_CASTING:
         case EVENT_T_FRIENDLY_HP:
+        case EVENT_T_FRIENDLY_IS_CC:
         case EVENT_T_AURA:
         case EVENT_T_TARGET_AURA:
         case EVENT_T_MISSING_AURA:
         case EVENT_T_TARGET_MISSING_AURA:
         case EVENT_T_RANGE:
+        case EVENT_T_ENERGY:
             return true;
         default:
             return false;
@@ -338,6 +340,7 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
             // We don't really care about the whole list, just return first available
             pActionInvoker = *(pList.begin());
 
+            LOG_PROCESS_EVENT;
             // Repeat Timers
             pHolder.UpdateRepeatTimer(m_creature, event.friendly_is_cc.repeatMin, event.friendly_is_cc.repeatMax);
             break;
@@ -449,6 +452,21 @@ bool CreatureEventAI::ProcessEvent(CreatureEventAIHolder& pHolder, Unit* pAction
         }
         case EVENT_T_RECEIVE_AI_EVENT:
             break;
+        case EVENT_T_ENERGY:
+        {
+            if (!m_creature->isInCombat() || !m_creature->GetMaxPower(POWER_ENERGY))
+                return false;
+
+            uint32 perc = (m_creature->GetPower(POWER_ENERGY) * 100) / m_creature->GetMaxPower(POWER_ENERGY);
+
+            if (perc > event.percent_range.percentMax || perc < event.percent_range.percentMin)
+                return false;
+
+            LOG_PROCESS_EVENT;
+            // Repeat Timers
+            pHolder.UpdateRepeatTimer(m_creature, event.percent_range.repeatMin, event.percent_range.repeatMax);
+            break;
+        }
         default:
             sLog.outErrorEventAI("Creature %u using Event %u has invalid Event Type(%u), missing from ProcessEvent() Switch.", m_creature->GetEntry(), pHolder.Event.event_id, pHolder.Event.event_type);
             break;
@@ -1441,7 +1459,7 @@ void CreatureEventAI::ReceiveEmote(Player* pPlayer, uint32 text_emote)
         if (itr->Event.event_type == EVENT_T_RECEIVE_EMOTE)
         {
             if (itr->Event.receive_emote.emoteId != text_emote)
-                return;
+                continue;
 
             PlayerCondition pcon(0, itr->Event.receive_emote.condition, itr->Event.receive_emote.conditionValue1, itr->Event.receive_emote.conditionValue2);
             if (pcon.Meets(pPlayer, m_creature->GetMap(), m_creature, CONDITION_FROM_EVENTAI))
