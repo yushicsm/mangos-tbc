@@ -1063,7 +1063,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         Item* GetWeaponForAttack(WeaponAttackType attackType, bool nonbroken, bool useable) const;
         Item* GetShield(bool useable = false) const;
         static uint32 GetAttackBySlot(uint8 slot);          // MAX_ATTACK if not weapon slot
-        std::vector<Item*> &GetItemUpdateQueue() { return m_itemUpdateQueue; }
+        std::vector<Item*>& GetItemUpdateQueue() { return m_itemUpdateQueue; }
         static bool IsInventoryPos(uint16 pos) { return IsInventoryPos(pos >> 8, pos & 255); }
         static bool IsInventoryPos(uint8 bag, uint8 slot);
         static bool IsEquipmentPos(uint16 pos) { return IsEquipmentPos(pos >> 8, pos & 255); }
@@ -1302,7 +1302,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool CanShareQuest(uint32 quest_id) const;
 
         void SendQuestCompleteEvent(uint32 quest_id);
-        void SendQuestReward(Quest const* pQuest, uint32 XP, Object* questGiver);
+        void SendQuestReward(Quest const* pQuest, uint32 XP);
         void SendQuestFailed(uint32 quest_id);
         void SendQuestTimerFailed(uint32 quest_id);
         void SendCanTakeQuestResponse(uint32 msg) const;
@@ -2155,7 +2155,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint8 GetOriginalSubGroup() const { return m_originalGroup.getSubGroup(); }
         void SetOriginalGroup(Group* group, int8 subgroup = -1);
 
-        GridReference<Player> &GetGridRef() { return m_gridRef; }
+        GridReference<Player>& GetGridRef() { return m_gridRef; }
         MapReference& GetMapRef() { return m_mapRef; }
 
         bool isAllowedToLoot(Creature* creature);

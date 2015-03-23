@@ -73,8 +73,6 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
     DEBUG_LOG("WORLD: Received opcode CMSG_WHO");
     // recv_data.hexlike();
 
-    uint32 clientcount = 0;
-
     uint32 level_min, level_max, racemask, classmask, zones_count, str_count;
     uint32 zoneids[10];                                     // 10 is client limit
     std::string player_name, guild_name;
@@ -138,9 +136,12 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
     bool allowTwoSideWhoList = sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST);
     AccountTypes gmLevelInWhoList = (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_WHO_LIST);
 
+    uint32 matchcount = 0;
+    uint32 displaycount = 0;
+
     WorldPacket data(SMSG_WHO, 50);                         // guess size
-    data << uint32(clientcount);                            // clientcount place holder, listed count
-    data << uint32(clientcount);                            // clientcount place holder, online count
+    data << uint32(matchcount);                             // placeholder, count of players matching criteria
+    data << uint32(displaycount);                           // placeholder, count of players displayed
 
     // TODO: Guard Player map
     HashMapHolder<Player>::MapType& m = sObjectAccessor.GetPlayers();
@@ -239,6 +240,13 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
         if (!s_show)
             continue;
 
+        // 49 is maximum player count sent to client
+        ++matchcount;
+        if (matchcount > 49)
+            continue;
+
+        ++displaycount;
+
         data << pname;                                      // player name
         data << gname;                                      // guild name
         data << uint32(lvl);                                // player level
@@ -246,21 +254,16 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
         data << uint32(race);                               // player race
         data << uint8(gender);                              // player gender
         data << uint32(pzoneid);                            // player zone id
-
-        // 50 is maximum player count sent to client
-        if ((++clientcount) == 50)
-            break;
     }
 
-    uint32 count = m.size();
-    data.put(0, clientcount);                               // insert right count, listed count
-    data.put(4, count > 50 ? count : clientcount);          // insert right count, online count
+    data.put(0, displaycount);                              // insert right count, count displayed
+    data.put(4, matchcount);                                // insert right count, count of matches
 
     SendPacket(&data);
     DEBUG_LOG("WORLD: Send SMSG_WHO Message");
 }
 
-void WorldSession::HandleLogoutRequestOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleLogoutRequestOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_LOGOUT_REQUEST, security %u", GetSecurity());
 
@@ -307,12 +310,12 @@ void WorldSession::HandleLogoutRequestOpcode(WorldPacket & /*recv_data*/)
     LogoutRequest(time(NULL));
 }
 
-void WorldSession::HandlePlayerLogoutOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandlePlayerLogoutOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_PLAYER_LOGOUT Message");
 }
 
-void WorldSession::HandleLogoutCancelOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleLogoutCancelOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_LOGOUT_CANCEL Message");
 
@@ -857,12 +860,12 @@ void WorldSession::HandleSetActionButtonOpcode(WorldPacket& recv_data)
     }
 }
 
-void WorldSession::HandleCompleteCinematic(WorldPacket & /*recv_data*/)
+void WorldSession::HandleCompleteCinematic(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_COMPLETE_CINEMATIC");
 }
 
-void WorldSession::HandleNextCinematicCamera(WorldPacket & /*recv_data*/)
+void WorldSession::HandleNextCinematicCamera(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_NEXT_CINEMATIC_CAMERA");
 }
@@ -1027,7 +1030,7 @@ void WorldSession::HandleInspectOpcode(WorldPacket& recv_data)
                 uint32 curtalent_maxrank = 0;
                 for (uint32 k = MAX_TALENT_RANK; k > 0; --k)
                 {
-                    if (talentInfo->RankID[k-1] && plr->HasSpell(talentInfo->RankID[k-1]))
+                    if (talentInfo->RankID[k - 1] && plr->HasSpell(talentInfo->RankID[k - 1]))
                     {
                         curtalent_maxrank = k;
                         break;
@@ -1366,7 +1369,7 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPacket& recv_data)
     }
 }
 
-void WorldSession::HandleCancelMountAuraOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode  CMSG_CANCEL_MOUNT_AURA");
 
@@ -1403,7 +1406,7 @@ void WorldSession::HandleMoveSetCanFlyAckOpcode(WorldPacket& recv_data)
     _player->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
 }
 
-void WorldSession::HandleRequestPetInfoOpcode(WorldPacket & /*recv_data */)
+void WorldSession::HandleRequestPetInfoOpcode(WorldPacket& /*recv_data */)
 {
     /*
         DEBUG_LOG("WORLD: Received opcode CMSG_REQUEST_PET_INFO");

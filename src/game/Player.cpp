@@ -218,7 +218,7 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, Team 
     {
         uint32 cost;
         uint32 path;
-        sObjectMgr.GetTaxiPath(m_TaxiDestinations[i-1], m_TaxiDestinations[i], path, cost);
+        sObjectMgr.GetTaxiPath(m_TaxiDestinations[i - 1], m_TaxiDestinations[i], path, cost);
         if (!path)
             return false;
     }
@@ -1483,13 +1483,13 @@ bool Player::BuildEnumData(QueryResult* result, WorldPacket* p_data)
     uint32 char_flags = 0;
     uint32 playerFlags = fields[14].GetUInt32();
     uint32 atLoginFlags = fields[15].GetUInt32();
-    if (playerFlags& PLAYER_FLAGS_HIDE_HELM)
+    if (playerFlags & PLAYER_FLAGS_HIDE_HELM)
         char_flags |= CHARACTER_FLAG_HIDE_HELM;
-    if (playerFlags& PLAYER_FLAGS_HIDE_CLOAK)
+    if (playerFlags & PLAYER_FLAGS_HIDE_CLOAK)
         char_flags |= CHARACTER_FLAG_HIDE_CLOAK;
-    if (playerFlags& PLAYER_FLAGS_GHOST)
+    if (playerFlags & PLAYER_FLAGS_GHOST)
         char_flags |= CHARACTER_FLAG_GHOST;
-    if (atLoginFlags& AT_LOGIN_RENAME)
+    if (atLoginFlags & AT_LOGIN_RENAME)
         char_flags |= CHARACTER_FLAG_RENAME;
     if (sWorld.getConfig(CONFIG_BOOL_DECLINED_NAMES_USED))
     {
@@ -1502,7 +1502,7 @@ bool Player::BuildEnumData(QueryResult* result, WorldPacket* p_data)
     *p_data << uint32(char_flags);                          // character flags
 
     // First login
-    *p_data << uint8(atLoginFlags& AT_LOGIN_FIRST ? 1 : 0);
+    *p_data << uint8(atLoginFlags & AT_LOGIN_FIRST ? 1 : 0);
 
     // Pets info
     {
@@ -2142,8 +2142,8 @@ GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameo
             float maxdist;
             switch (go->GetGoType())
             {
-                    // TODO: find out how the client calculates the maximal usage distance to spellless working
-                    // gameobjects like guildbanks and mailboxes - 10.0 is a just an abitrary choosen number
+                // TODO: find out how the client calculates the maximal usage distance to spellless working
+                // gameobjects like guildbanks and mailboxes - 10.0 is a just an abitrary choosen number
                 case GAMEOBJECT_TYPE_GUILD_BANK:
                 case GAMEOBJECT_TYPE_MAILBOX:
                     maxdist = 10.0f;
@@ -2280,7 +2280,7 @@ bool Player::IsGroupVisibleFor(Player* p) const
     {
         default: return IsInSameGroupWith(p);
         case 1:  return IsInSameRaidWith(p);
-        case 2:  return GetTeam()==p->GetTeam();
+        case 2:  return GetTeam() == p->GetTeam();
     }
 }
 
@@ -2647,7 +2647,7 @@ void Player::SendInitialSpells()
 
     uint16 spellCount = 0;
 
-    WorldPacket data(SMSG_INITIAL_SPELLS, (1 + 2 + 4 * m_spells.size() + 2 + m_spellCooldowns.size()*(2 + 2 + 2 + 4 + 4)));
+    WorldPacket data(SMSG_INITIAL_SPELLS, (1 + 2 + 4 * m_spells.size() + 2 + m_spellCooldowns.size() * (2 + 2 + 2 + 4 + 4)));
     data << uint8(0);
 
     size_t countPos = data.wpos();
@@ -2970,7 +2970,7 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependen
         {
             for (PlayerSpellMap::iterator itr2 = m_spells.begin(); itr2 != m_spells.end(); ++itr2)
             {
-                PlayerSpell &playerSpell2 = itr2->second;
+                PlayerSpell& playerSpell2 = itr2->second;
 
                 if (playerSpell2.state == PLAYERSPELL_REMOVED) continue;
                 SpellEntry const* i_spellInfo = sSpellStore.LookupEntry(itr2->first);
@@ -3934,7 +3934,7 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
 
     switch (charDelete_method)
     {
-            // completely remove from the database
+        // completely remove from the database
         case 0:
         {
             // return back all mails with COD and Item                 0  1           2              3      4       5          6     7
@@ -4937,7 +4937,7 @@ float Player::GetDodgeFromAgility()
     if (dodgeRatio == NULL || pclass > MAX_CLASSES)
         return 0.0f;
 
-    float dodge = dodge_base[pclass-1] + GetStat(STAT_AGILITY) * dodgeRatio->ratio * crit_to_dodge[pclass-1];
+    float dodge = dodge_base[pclass - 1] + GetStat(STAT_AGILITY) * dodgeRatio->ratio * crit_to_dodge[pclass - 1];
     return dodge * 100.0f;
 }
 
@@ -5201,7 +5201,7 @@ bool Player::UpdateSkill(uint32 skill_id, uint32 step)
     if (itr == mSkillStatus.end())
         return false;
 
-    SkillStatusData &skillStatus = itr->second;
+    SkillStatusData& skillStatus = itr->second;
     if (skillStatus.uState == SKILL_DELETED)
         return false;
 
@@ -5330,7 +5330,7 @@ bool Player::UpdateSkillPro(uint16 SkillId, int32 Chance, uint32 step)
     if (itr == mSkillStatus.end())
         return false;
 
-    SkillStatusData &skillStatus = itr->second;
+    SkillStatusData& skillStatus = itr->second;
     if (skillStatus.uState == SKILL_DELETED)
         return false;
 
@@ -5454,7 +5454,7 @@ void Player::UpdateSkillsForLevel()
 
     for (SkillStatusMap::iterator itr = mSkillStatus.begin(); itr != mSkillStatus.end(); ++itr)
     {
-        SkillStatusData &skillStatus = itr->second;
+        SkillStatusData& skillStatus = itr->second;
         if (skillStatus.uState == SKILL_DELETED)
             continue;
 
@@ -5496,7 +5496,7 @@ void Player::UpdateSkillsToMaxSkillsForLevel()
 {
     for (SkillStatusMap::iterator itr = mSkillStatus.begin(); itr != mSkillStatus.end(); ++itr)
     {
-        SkillStatusData &skillStatus = itr->second;
+        SkillStatusData& skillStatus = itr->second;
         if (skillStatus.uState == SKILL_DELETED)
             continue;
 
@@ -5532,7 +5532,7 @@ void Player::SetSkill(uint16 id, uint16 currVal, uint16 maxVal, uint16 step /*=0
     // has skill
     if (itr != mSkillStatus.end() && itr->second.uState != SKILL_DELETED)
     {
-        SkillStatusData &skillStatus = itr->second;
+        SkillStatusData& skillStatus = itr->second;
         if (currVal)
         {
             if (step)                                      // need update step
@@ -9417,13 +9417,13 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
     Item*    pItem2;
 
     // fill space table
-    int inv_slot_items[INVENTORY_SLOT_ITEM_END-INVENTORY_SLOT_ITEM_START];
-    int inv_bags[INVENTORY_SLOT_BAG_END-INVENTORY_SLOT_BAG_START][MAX_BAG_SIZE];
-    int inv_keys[KEYRING_SLOT_END-KEYRING_SLOT_START];
+    int inv_slot_items[INVENTORY_SLOT_ITEM_END - INVENTORY_SLOT_ITEM_START];
+    int inv_bags[INVENTORY_SLOT_BAG_END - INVENTORY_SLOT_BAG_START][MAX_BAG_SIZE];
+    int inv_keys[KEYRING_SLOT_END - KEYRING_SLOT_START];
 
-    memset(inv_slot_items, 0, sizeof(int)*(INVENTORY_SLOT_ITEM_END - INVENTORY_SLOT_ITEM_START));
-    memset(inv_bags, 0, sizeof(int)*(INVENTORY_SLOT_BAG_END - INVENTORY_SLOT_BAG_START)*MAX_BAG_SIZE);
-    memset(inv_keys, 0, sizeof(int)*(KEYRING_SLOT_END - KEYRING_SLOT_START));
+    memset(inv_slot_items, 0, sizeof(int) * (INVENTORY_SLOT_ITEM_END - INVENTORY_SLOT_ITEM_START));
+    memset(inv_bags, 0, sizeof(int) * (INVENTORY_SLOT_BAG_END - INVENTORY_SLOT_BAG_START)*MAX_BAG_SIZE);
+    memset(inv_keys, 0, sizeof(int) * (KEYRING_SLOT_END - KEYRING_SLOT_START));
 
     for (int i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; ++i)
     {
@@ -9431,7 +9431,7 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
 
         if (pItem2 && !pItem2->IsInTrade())
         {
-            inv_slot_items[i-INVENTORY_SLOT_ITEM_START] = pItem2->GetCount();
+            inv_slot_items[i - INVENTORY_SLOT_ITEM_START] = pItem2->GetCount();
         }
     }
 
@@ -9441,7 +9441,7 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
 
         if (pItem2 && !pItem2->IsInTrade())
         {
-            inv_keys[i-KEYRING_SLOT_START] = pItem2->GetCount();
+            inv_keys[i - KEYRING_SLOT_START] = pItem2->GetCount();
         }
     }
 
@@ -9454,7 +9454,7 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
                 pItem2 = GetItemByPos(i, j);
                 if (pItem2 && !pItem2->IsInTrade())
                 {
-                    inv_bags[i-INVENTORY_SLOT_BAG_START][j] = pItem2->GetCount();
+                    inv_bags[i - INVENTORY_SLOT_BAG_START][j] = pItem2->GetCount();
                 }
             }
         }
@@ -9499,9 +9499,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
             for (int t = KEYRING_SLOT_START; t < KEYRING_SLOT_END; ++t)
             {
                 pItem2 = GetItemByPos(INVENTORY_SLOT_BAG_0, t);
-                if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_keys[t-KEYRING_SLOT_START] + pItem->GetCount() <= pProto->GetMaxStackSize())
+                if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_keys[t - KEYRING_SLOT_START] + pItem->GetCount() <= pProto->GetMaxStackSize())
                 {
-                    inv_keys[t-KEYRING_SLOT_START] += pItem->GetCount();
+                    inv_keys[t - KEYRING_SLOT_START] += pItem->GetCount();
                     b_found = true;
                     break;
                 }
@@ -9511,9 +9511,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
             for (int t = INVENTORY_SLOT_ITEM_START; t < INVENTORY_SLOT_ITEM_END; ++t)
             {
                 pItem2 = GetItemByPos(INVENTORY_SLOT_BAG_0, t);
-                if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_slot_items[t-INVENTORY_SLOT_ITEM_START] + pItem->GetCount() <= pProto->GetMaxStackSize())
+                if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_slot_items[t - INVENTORY_SLOT_ITEM_START] + pItem->GetCount() <= pProto->GetMaxStackSize())
                 {
-                    inv_slot_items[t-INVENTORY_SLOT_ITEM_START] += pItem->GetCount();
+                    inv_slot_items[t - INVENTORY_SLOT_ITEM_START] += pItem->GetCount();
                     b_found = true;
                     break;
                 }
@@ -9528,9 +9528,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
                     for (uint32 j = 0; j < pBag->GetBagSize(); ++j)
                     {
                         pItem2 = GetItemByPos(t, j);
-                        if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_bags[t-INVENTORY_SLOT_BAG_START][j] + pItem->GetCount() <= pProto->GetMaxStackSize())
+                        if (pItem2 && pItem2->CanBeMergedPartlyWith(pProto) == EQUIP_ERR_OK && inv_bags[t - INVENTORY_SLOT_BAG_START][j] + pItem->GetCount() <= pProto->GetMaxStackSize())
                         {
-                            inv_bags[t-INVENTORY_SLOT_BAG_START][j] += pItem->GetCount();
+                            inv_bags[t - INVENTORY_SLOT_BAG_START][j] += pItem->GetCount();
                             b_found = true;
                             break;
                         }
@@ -9549,9 +9549,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
                 uint32 keyringSize = GetMaxKeyringSize();
                 for (uint32 t = KEYRING_SLOT_START; t < KEYRING_SLOT_START + keyringSize; ++t)
                 {
-                    if (inv_keys[t-KEYRING_SLOT_START] == 0)
+                    if (inv_keys[t - KEYRING_SLOT_START] == 0)
                     {
-                        inv_keys[t-KEYRING_SLOT_START] = 1;
+                        inv_keys[t - KEYRING_SLOT_START] = 1;
                         b_found = true;
                         break;
                     }
@@ -9573,9 +9573,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
                     {
                         for (uint32 j = 0; j < pBag->GetBagSize(); ++j)
                         {
-                            if (inv_bags[t-INVENTORY_SLOT_BAG_START][j] == 0)
+                            if (inv_bags[t - INVENTORY_SLOT_BAG_START][j] == 0)
                             {
-                                inv_bags[t-INVENTORY_SLOT_BAG_START][j] = 1;
+                                inv_bags[t - INVENTORY_SLOT_BAG_START][j] = 1;
                                 b_found = true;
                                 break;
                             }
@@ -9590,9 +9590,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
         bool b_found = false;
         for (int t = INVENTORY_SLOT_ITEM_START; t < INVENTORY_SLOT_ITEM_END; ++t)
         {
-            if (inv_slot_items[t-INVENTORY_SLOT_ITEM_START] == 0)
+            if (inv_slot_items[t - INVENTORY_SLOT_ITEM_START] == 0)
             {
-                inv_slot_items[t-INVENTORY_SLOT_ITEM_START] = 1;
+                inv_slot_items[t - INVENTORY_SLOT_ITEM_START] = 1;
                 b_found = true;
                 break;
             }
@@ -9613,9 +9613,9 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count) const
 
                 for (uint32 j = 0; j < pBag->GetBagSize(); ++j)
                 {
-                    if (inv_bags[t-INVENTORY_SLOT_BAG_START][j] == 0)
+                    if (inv_bags[t - INVENTORY_SLOT_BAG_START][j] == 0)
                     {
-                        inv_bags[t-INVENTORY_SLOT_BAG_START][j] = 1;
+                        inv_bags[t - INVENTORY_SLOT_BAG_START][j] = 1;
                         b_found = true;
                         break;
                     }
@@ -10224,7 +10224,7 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
         }
         else if (Bag* pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, bag))
         {
-            pBag->StoreItem(slot, pItem, update);
+            pBag->StoreItem(slot, pItem);
             if (IsInWorld() && update)
             {
                 pItem->AddToWorld();
@@ -10246,8 +10246,8 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
     {
         ItemPrototype const* itemProto = pItem2->GetProto();
         if (itemProto->Bonding == BIND_WHEN_PICKED_UP ||
-            itemProto->Bonding == BIND_QUEST_ITEM ||
-            (itemProto->Bonding == BIND_WHEN_EQUIPPED && IsBagPos(pos)))
+                itemProto->Bonding == BIND_QUEST_ITEM ||
+                (itemProto->Bonding == BIND_WHEN_EQUIPPED && IsBagPos(pos)))
         {
             pItem2->SetBinding(true);
         }
@@ -10522,7 +10522,7 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
         {
             Bag* pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, bag);
             if (pBag)
-                pBag->RemoveItem(slot, update);
+                pBag->RemoveItem(slot);
         }
         pItem->SetGuidValue(ITEM_FIELD_CONTAINED, ObjectGuid());
         // pItem->SetGuidValue(ITEM_FIELD_OWNER, ObjectGuid()); not clear owner at remove (it will be set at store). This used in mail and auction code
@@ -10642,7 +10642,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
             m_items[slot] = NULL;
         }
         else if (Bag* pBag = (Bag*)GetItemByPos(INVENTORY_SLOT_BAG_0, bag))
-            pBag->RemoveItem(slot, update);
+            pBag->RemoveItem(slot);
 
         if (IsInWorld() && update)
         {
@@ -11297,8 +11297,8 @@ void Player::SwapItem(uint16 src, uint16 dst)
                 if (!bagItem)
                     continue;
 
-                fullBag->RemoveItem(i, true);
-                emptyBag->StoreItem(count, bagItem, true);
+                fullBag->RemoveItem(i);
+                emptyBag->StoreItem(count, bagItem);
                 bagItem->SetState(ITEM_CHANGED, this);
 
                 ++count;
@@ -12442,7 +12442,7 @@ uint32 Player::GetGossipTextId(uint32 menuId, WorldObject* pSource)
         // Take the text that has the highest conditionId of all fitting
         // No condition and no text with condition found OR higher and fitting condition found
         if ((!gossipMenu.conditionId && !lastConditionId) ||
-            (gossipMenu.conditionId > lastConditionId && sObjectMgr.IsPlayerMeetToCondition(gossipMenu.conditionId, this, GetMap(), pSource, CONDITION_FROM_GOSSIP_MENU)))
+                (gossipMenu.conditionId > lastConditionId && sObjectMgr.IsPlayerMeetToCondition(gossipMenu.conditionId, this, GetMap(), pSource, CONDITION_FROM_GOSSIP_MENU)))
         {
             lastConditionId = gossipMenu.conditionId;
             textId = gossipMenu.text_id;
@@ -13141,7 +13141,7 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
         q_status.uState = QUEST_CHANGED;
 
     if (announce)
-        SendQuestReward(pQuest, xp, questGiver);
+        SendQuestReward(pQuest, xp);
 
     bool handled = false;
 
@@ -14174,7 +14174,7 @@ void Player::SendQuestCompleteEvent(uint32 quest_id)
     }
 }
 
-void Player::SendQuestReward(Quest const* pQuest, uint32 XP, Object* /*questGiver*/)
+void Player::SendQuestReward(Quest const* pQuest, uint32 XP)
 {
     uint32 questid = pQuest->GetQuestId();
     DEBUG_LOG("WORLD: Sent SMSG_QUESTGIVER_QUEST_COMPLETE quest = %u", questid);
@@ -14914,7 +14914,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     SetHealth(savedhealth > GetMaxHealth() ? GetMaxHealth() : savedhealth);
     for (uint32 i = 0; i < MAX_POWERS; ++i)
     {
-        uint32 savedpower = fields[50+i].GetUInt32();
+        uint32 savedpower = fields[50 + i].GetUInt32();
         SetPower(Powers(i), savedpower > GetMaxPower(Powers(i)) ? GetMaxPower(Powers(i)) : savedpower);
     }
 
@@ -15071,8 +15071,8 @@ void Player::_LoadAuras(QueryResult* result, uint32 timediff)
 
             for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
             {
-                damage[i] = fields[i+5].GetInt32();
-                periodicTime[i] = fields[i+8].GetUInt32();
+                damage[i] = fields[i + 5].GetInt32();
+                periodicTime[i] = fields[i + 8].GetUInt32();
             }
 
             int32 maxduration = fields[11].GetInt32();
@@ -16515,7 +16515,7 @@ void Player::_SaveQuestStatus()
     // we don't need transactions here.
     for (QuestStatusMap::iterator i = mQuestStatus.begin(); i != mQuestStatus.end(); ++i)
     {
-        QuestStatusData &questStatus = i->second;
+        QuestStatusData& questStatus = i->second;
         switch (questStatus.uState)
         {
             case QUEST_NEW :
@@ -17538,10 +17538,10 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     if (node->x != 0.0f || node->y != 0.0f || node->z != 0.0f)
     {
         if (node->map_id != GetMapId() ||
-                (node->x - GetPositionX())*(node->x - GetPositionX()) +
-                (node->y - GetPositionY())*(node->y - GetPositionY()) +
-                (node->z - GetPositionZ())*(node->z - GetPositionZ()) >
-                (2 * INTERACTION_DISTANCE)*(2 * INTERACTION_DISTANCE)*(2 * INTERACTION_DISTANCE))
+                (node->x - GetPositionX()) * (node->x - GetPositionX()) +
+                (node->y - GetPositionY()) * (node->y - GetPositionY()) +
+                (node->z - GetPositionZ()) * (node->z - GetPositionZ()) >
+                (2 * INTERACTION_DISTANCE) * (2 * INTERACTION_DISTANCE) * (2 * INTERACTION_DISTANCE))
         {
             GetSession()->SendActivateTaxiReply(ERR_TAXITOOFARAWAY);
             return false;
@@ -17675,7 +17675,7 @@ void Player::ContinueTaxiFlight()
     for (uint32 i = 1; i < nodeList.size(); ++i)
     {
         TaxiPathNodeEntry const& node = nodeList[i];
-        TaxiPathNodeEntry const& prevNode = nodeList[i-1];
+        TaxiPathNodeEntry const& prevNode = nodeList[i - 1];
 
         // skip nodes at another map
         if (node.mapid != GetMapId())
@@ -18826,7 +18826,7 @@ void Player::SendTransferAbortedByLockStatus(MapEntry const* mapEntry, AreaLockS
                 DEBUG_LOG("SendTransferAbortedByLockStatus: LockAreaStatus %u, do not teleport, no message sent (mapId %u)", lockStatus, mapEntry->MapID);
                 break;
             }
-            // No break here!
+        // No break here!
         case AREA_LOCKSTATUS_MISSING_ITEM:
             GetSession()->SendTransferAborted(mapEntry->MapID, TRANSFER_ABORT_DIFFICULTY, GetDifficulty());
             break;

@@ -220,7 +220,7 @@ class AuctionBotSeller : public AuctionBotAgent
         void        LoadSellerValues(AHB_Seller_Config& config);
         uint32      SetStat(AHB_Seller_Config& config);
         bool        getRandomArray(AHB_Seller_Config& config, RandomArray& ra, const std::vector<std::vector<uint32> >& addedItem);
-        void        SetPricesOfItem(ItemPrototype const* itemProto, AHB_Seller_Config& config, uint32& buyp, uint32& bidp, uint32 stackcnt, ItemQualities itemQuality);
+        void        SetPricesOfItem(AHB_Seller_Config& config, uint32& buyp, uint32& bidp, uint32 stackcnt, ItemQualities itemQuality);
         void        LoadItemsQuantity(AHB_Seller_Config& config);
 };
 
@@ -453,8 +453,8 @@ uint32 AuctionBotConfig::getConfigItemQualityAmount(AuctionQuality quality) cons
         case AUCTION_QUALITY_WHITE: return getConfig(CONFIG_UINT32_AHBOT_ITEM_WHITE_AMOUNT);
         case AUCTION_QUALITY_GREEN: return getConfig(CONFIG_UINT32_AHBOT_ITEM_GREEN_AMOUNT);
         case AUCTION_QUALITY_BLUE:  return getConfig(CONFIG_UINT32_AHBOT_ITEM_BLUE_AMOUNT);
-        case AUCTION_QUALITY_PURPLE:return getConfig(CONFIG_UINT32_AHBOT_ITEM_PURPLE_AMOUNT);
-        case AUCTION_QUALITY_ORANGE:return getConfig(CONFIG_UINT32_AHBOT_ITEM_ORANGE_AMOUNT);
+        case AUCTION_QUALITY_PURPLE: return getConfig(CONFIG_UINT32_AHBOT_ITEM_PURPLE_AMOUNT);
+        case AUCTION_QUALITY_ORANGE: return getConfig(CONFIG_UINT32_AHBOT_ITEM_ORANGE_AMOUNT);
         default:                    return getConfig(CONFIG_UINT32_AHBOT_ITEM_YELLOW_AMOUNT);
     }
 }
@@ -1473,7 +1473,7 @@ bool AuctionBotSeller::getRandomArray(AHB_Seller_Config& config, RandomArray& ra
 }
 
 // Set items price. All important value are passed by address.
-void AuctionBotSeller::SetPricesOfItem(ItemPrototype const* /*itemProto*/, AHB_Seller_Config& config, uint32& buyp, uint32& bidp, uint32 stackcnt, ItemQualities itemQuality)
+void AuctionBotSeller::SetPricesOfItem(AHB_Seller_Config& config, uint32& buyp, uint32& bidp, uint32 stackcnt, ItemQualities itemQuality)
 {
     double temp_buyp = buyp * stackcnt *
                        (itemQuality < MAX_AUCTION_QUALITY ? config.GetPriceRatioPerQuality(AuctionQuality(itemQuality)) : 1) ;
@@ -1532,8 +1532,8 @@ void AuctionBotSeller::SetItemsAmountForQuality(AuctionQuality quality, uint32 v
         case AUCTION_QUALITY_WHITE: sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_WHITE_AMOUNT, val); break;
         case AUCTION_QUALITY_GREEN: sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_GREEN_AMOUNT, val); break;
         case AUCTION_QUALITY_BLUE:  sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_BLUE_AMOUNT, val); break;
-        case AUCTION_QUALITY_PURPLE:sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_PURPLE_AMOUNT, val); break;
-        case AUCTION_QUALITY_ORANGE:sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_ORANGE_AMOUNT, val); break;
+        case AUCTION_QUALITY_PURPLE: sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_PURPLE_AMOUNT, val); break;
+        case AUCTION_QUALITY_ORANGE: sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_ORANGE_AMOUNT, val); break;
         default:                    sAuctionBotConfig.setConfig(CONFIG_UINT32_AHBOT_ITEM_YELLOW_AMOUNT, val); break;
     }
 
@@ -1613,7 +1613,7 @@ void AuctionBotSeller::addNewAuctions(AHB_Seller_Config& config)
         else
             buyoutPrice  = prototype->SellPrice * item->GetCount();
         // Price of items are set here
-        SetPricesOfItem(prototype, config, buyoutPrice, bidPrice, stackCount, ItemQualities(prototype->Quality));
+        SetPricesOfItem(config, buyoutPrice, bidPrice, stackCount, ItemQualities(prototype->Quality));
 
         auctionHouse->AddAuction(ahEntry, item, urand(config.GetMinTime(), config.GetMaxTime()) * HOUR, bidPrice, buyoutPrice);
     }

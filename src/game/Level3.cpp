@@ -3491,7 +3491,7 @@ bool ChatHandler::HandleDamageCommand(char* args)
     {
         player->DealDamage(target, damage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);
         if (target != player)
-            player->SendAttackStateUpdate(HITINFO_NORMALSWING2, target, 1, SPELL_SCHOOL_MASK_NORMAL, damage, 0, 0, VICTIMSTATE_NORMAL, 0);
+            player->SendAttackStateUpdate(HITINFO_NORMALSWING2, target, SPELL_SCHOOL_MASK_NORMAL, damage, 0, 0, VICTIMSTATE_NORMAL, 0);
         return true;
     }
 
@@ -3522,7 +3522,7 @@ bool ChatHandler::HandleDamageCommand(char* args)
 
         player->DealDamageMods(target, damage, &absorb);
         player->DealDamage(target, damage, NULL, DIRECT_DAMAGE, schoolmask, NULL, false);
-        player->SendAttackStateUpdate(HITINFO_NORMALSWING2, target, 1, schoolmask, damage, absorb, resist, VICTIMSTATE_NORMAL, 0);
+        player->SendAttackStateUpdate(HITINFO_NORMALSWING2, target, schoolmask, damage, absorb, resist, VICTIMSTATE_NORMAL, 0);
         return true;
     }
 
@@ -4321,9 +4321,11 @@ bool ChatHandler::HandleChangeWeatherCommand(char* args)
     if (!ExtractFloat(&args, grade))
         return false;
 
-    // 0 to 1, sending -1 is instant good weather
-    if (grade < 0.0f || grade > 1.0f)
-        return false;
+    // clamp grade from 0 to 1
+    if (grade < 0.0f)
+        grade = 0.0f;
+    else if (grade > 1.0f)
+        grade = 1.0f;
 
     Player* player = m_session->GetPlayer();
     uint32 zoneId = player->GetZoneId();
@@ -6652,9 +6654,9 @@ bool ChatHandler::HandleMmapTestHeight(char* args)
     ExtractFloat(&args, radius);
     if (radius > 40.0f)
         radius = 40.0f;
-    
+
     Unit* unit = getSelectedUnit();
-    
+
     Player* player = m_session->GetPlayer();
     if (!unit)
         unit = player;
@@ -6686,7 +6688,7 @@ bool ChatHandler::HandleMmapTestHeight(char* args)
     unit->GetPosition(gx, gy, gz);
 
     Creature* summoned = unit->SummonCreature(VISUAL_WAYPOINT, gx, gy, gz + 0.5f, 0, TEMPSUMMON_TIMED_DESPAWN, 20000);
-    summoned->CastSpell(summoned, 8599, false); 
+    summoned->CastSpell(summoned, 8599, false);
     uint32 tryed = 1;
     uint32 succeed = 0;
     uint32 startTime = WorldTimer::getMSTime();
