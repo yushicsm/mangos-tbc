@@ -1021,8 +1021,12 @@ void Aura::TriggerSpell()
 //                    case 18347: break;
 //                    // Ranshalla Waiting
 //                    case 18953: break;
-//                    // Inferno
-//                    case 19695: break;
+                    case 19695:                             // Inferno
+                    {
+                        int32 damageForTick[8] = { 500, 500, 1000, 1000, 2000, 2000, 3000, 5000 };
+                        triggerTarget->CastCustomSpell(triggerTarget, 19698, &damageForTick[GetAuraTicks() - 1], NULL, NULL, true, NULL);
+                        return;
+                    }
 //                    // Frostwolf Muzzle DND
 //                    case 21794: break;
 //                    // Alterac Ram Collar DND
@@ -2756,9 +2760,9 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
 
                 // If spell that caused this aura has Croud Control or Daze effect
                 if ((aurMechMask & MECHANIC_NOT_REMOVED_BY_SHAPESHIFT) ||
-                        // some Daze spells have these parameters instead of MECHANIC_DAZE (skip snare spells)
-                        (aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 &&
-                         (aurMechMask & (1 << (MECHANIC_SNARE - 1))) == 0))
+                    // some Daze spells have these parameters instead of MECHANIC_DAZE (skip snare spells)
+                    (aurSpellInfo->SpellIconID == 15 && aurSpellInfo->Dispel == 0 &&
+                    (aurMechMask & (1 << (MECHANIC_SNARE - 1))) == 0))
                 {
                     ++iter;
                     continue;
@@ -2772,6 +2776,13 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
             // and polymorphic affects
             if (target->IsPolymorphed())
                 target->RemoveAurasDueToSpell(target->getTransForm());
+
+            //no break here
+        }
+        case FORM_GHOSTWOLF:
+        {
+            // remove water walk aura. TODO:: there is probably better way to do this
+            target->RemoveSpellsCausingAura(SPELL_AURA_WATER_WALK);
 
             break;
         }
@@ -6436,6 +6447,20 @@ void Aura::PeriodicDummyTick()
                     return;
 //              // Panda
 //              case 19230: break;
+                case 30019:                                 // Control Piece
+                {
+                    if (target->GetTypeId() != TYPEID_PLAYER)
+                        return;
+
+                    Unit* chessPiece = target->GetCharm();
+                    if (!chessPiece)
+                    {
+                        target->CastSpell(target, 30529, true);
+                        target->RemoveAurasDueToSpell(30019);
+                        target->RemoveAurasDueToSpell(30532);
+                    }
+                    return;
+                }
 //              // Gossip NPC Periodic - Talk
 //              case 33208: break;
 //              // Gossip NPC Periodic - Despawn
