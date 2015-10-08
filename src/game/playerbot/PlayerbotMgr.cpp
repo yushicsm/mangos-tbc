@@ -27,7 +27,7 @@ void PlayerbotMgr::SetInitialWorldSettings()
         sLog.outString("Playerbot: Using configuration file %s",_PLAYERBOT_CONFIG);
 
     //Check playerbot config file version
-    if (botConfig.GetIntDefault("ConfVersion", 0) != PLAYERBOT_CONF_VERSION)
+    if (botConfig.GetInDefault("ConfVersion", 0) != PLAYERBOT_CONF_VERSION)
         sLog.outError("Playerbot: Configuration file version doesn't match expected version. Some config variables may be wrong or missing.");
 }
 
@@ -891,7 +891,7 @@ void PlayerbotMgr::OnBotLogin(Player * const bot)
     // if bot is in a group and master is not in group then
     // have bot leave their group
     if (bot->GetGroup() &&
-        (m_master->GetGroup() == NULL ||
+        (m_master->GetGroup() == nullptr ||
         m_master->GetGroup()->IsMember(bot->GetObjectGuid()) == false))
         bot->RemoveFromGroup();
 
@@ -947,14 +947,14 @@ void Creature::LoadBotMenu(Player *pPlayer)
             // create the manager if it doesn't already exist
             if (!pPlayer->GetPlayerbotMgr())
                 pPlayer->SetPlayerbotMgr(new PlayerbotMgr(pPlayer));
-            if (pPlayer->GetPlayerbotMgr()->GetPlayerBot(guidlo) == NULL) // add (if not already in game)
+            if (pPlayer->GetPlayerbotMgr()->GetPlayerBot(guidlo) == nullptr) // add (if not already in game)
             {
                 word += "Recruit ";
                 word += name;
                 word += " as a Bot.";
                 pPlayer->PlayerTalkClass->GetGossipMenu().AddMenuItem((uint8) 9, word, guidlo, GOSSIP_OPTION_BOT, word, false);
             }
-            else if (pPlayer->GetPlayerbotMgr()->GetPlayerBot(guidlo) != NULL) // remove (if in game)
+            else if (pPlayer->GetPlayerbotMgr()->GetPlayerBot(guidlo) != nullptr) // remove (if in game)
             {
                 word += "Dismiss ";
                 word += name;
@@ -1022,7 +1022,7 @@ bool Player::getNextQuestId(const std::string& pString, unsigned int& pStartPos,
 
 bool Player::requiredQuests(const char* pQuestIdString)
 {
-    if (pQuestIdString != NULL)
+    if (pQuestIdString != nullptr)
     {
         unsigned int pos = 0;
         unsigned int id;
@@ -1073,7 +1073,7 @@ bool ChatHandler::HandlePlayerbotCommand(char* args)
         }
 
         char *cmd = strtok ((char *) args, " ");
-        char *charname = strtok (NULL, " ");
+        char *charname = strtok (nullptr, " ");
         if (!cmd || !charname)
         {
             PSendSysMessage("|cffff0000usage: add PLAYERNAME  or  remove PLAYERNAME");

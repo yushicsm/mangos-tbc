@@ -294,13 +294,13 @@ void PlayerbotRogueAI::DoNonCombatActions()
     Item* pItem = ai->FindFood();
     Item* fItem = ai->FindBandage();
 
-    if (pItem != NULL && ai->GetHealthPercent() < 30)
+    if (pItem != nullptr && ai->GetHealthPercent() < 30)
     {
         ai->TellMaster("I could use some food.");
         ai->UseItem(pItem);
         return;
     }
-    else if (pItem == NULL && fItem != NULL && !m_bot->HasAura(RECENTLY_BANDAGED, EFFECT_INDEX_0) && ai->GetHealthPercent() < 70)
+    else if (pItem == nullptr && fItem != nullptr && !m_bot->HasAura(RECENTLY_BANDAGED, EFFECT_INDEX_0) && ai->GetHealthPercent() < 70)
     {
         ai->TellMaster("I could use first aid.");
         ai->UseItem(fItem);

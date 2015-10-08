@@ -280,7 +280,7 @@ void PlayerbotHunterAI::DoNonCombatActions()
     Item* pItem = ai->FindDrink();
     Item* fItem = ai->FindBandage();
 
-    if (pItem != NULL && ai->GetManaPercent() < 30)
+    if (pItem != nullptr && ai->GetManaPercent() < 30)
     {
         ai->TellMaster("I could use a drink.");
         ai->UseItem(pItem);
@@ -293,13 +293,13 @@ void PlayerbotHunterAI::DoNonCombatActions()
 
     pItem = ai->FindFood();
 
-    if (pItem != NULL && ai->GetHealthPercent() < 30)
+    if (pItem != nullptr && ai->GetHealthPercent() < 30)
     {
         ai->TellMaster("I could use some food.");
         ai->UseItem(pItem);
         return;
     }
-    else if (pItem == NULL && fItem != NULL && !m_bot->HasAura(RECENTLY_BANDAGED, EFFECT_INDEX_0) && ai->GetHealthPercent() < 70)
+    else if (pItem == nullptr && fItem != nullptr && !m_bot->HasAura(RECENTLY_BANDAGED, EFFECT_INDEX_0) && ai->GetHealthPercent() < 70)
     {
         ai->TellMaster("I could use first aid.");
         ai->UseItem(fItem);
@@ -355,7 +355,7 @@ void PlayerbotHunterAI::DoNonCombatActions()
                         int32 benefit = pet->GetCurrentFoodBenefitLevel(pItemProto->ItemLevel)*15; // nutritional value of food
                         DEBUG_LOG("FEED_PET benefit (%i)",benefit);
                         m_bot->DestroyItemCount(pItem, count, true); // remove item from inventory
-                        m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, NULL, NULL, true); // feed pet
+                        m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, true); // feed pet
                         ai->TellMaster("feeding pet.");
                         ai->SetIgnoreUpdateTime(10);
                         return;
@@ -383,7 +383,7 @@ void PlayerbotHunterAI::DoNonCombatActions()
                                 uint32 count = 1; // number of items used
                                 int32 benefit = pet->GetCurrentFoodBenefitLevel(pItemProto->ItemLevel)*15; // nutritional value of food
                                 m_bot->DestroyItemCount(pItem, count, true); // remove item from inventory
-                                m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, NULL, NULL, true); // feed pet
+                                m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, true); // feed pet
                                 ai->TellMaster("feeding pet.");
                                 ai->SetIgnoreUpdateTime(10);
                                 return;

@@ -409,7 +409,7 @@ void PlayerbotWarlockAI::DoNonCombatActions()
     }
 
     // Destroy extra soul shards
-    uint8 shardCount = m_bot->GetItemCount(SOUL_SHARD, false, NULL);
+    uint8 shardCount = m_bot->GetItemCount(SOUL_SHARD, false, nullptr);
     uint8 freeSpace = ai->GetFreeBagSpace();
     if (shardCount > MAX_SHARD_COUNT || (freeSpace == 0 && shardCount > 1))
         m_bot->DestroyItemCount(SOUL_SHARD, shardCount > MAX_SHARD_COUNT ? shardCount - MAX_SHARD_COUNT : 1, true, false);
