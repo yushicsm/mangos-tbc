@@ -5366,6 +5366,64 @@ bool PlayerbotAI::HasTool(uint32 TC)
     return false;
 }
 
+bool PlayerbotAI::PickPocket(Unit* pTarget)
+{
+    if(!pTarget)
+        return false;
+
+    ObjectGuid markGuid = pTarget->GetObjectGuid();
+    Creature *c = m_bot->GetMap()->GetCreature(markGuid);
+    if(c)
+    {
+        Loot*& loot = c->loot;
+        if (!loot)
+            loot = new Loot(m_bot, c, LOOT_PICKPOCKETING);
+        else
+        {
+            if (loot->GetLootType() != LOOT_PICKPOCKETING)
+            {
+                delete loot;
+                loot = new Loot(m_bot, c, LOOT_PICKPOCKETING);
+            }
+        }
+
+        if (loot->GetGoldAmount())
+        {
+            m_bot->ModifyMoney(loot->GetGoldAmount());
+
+            if (m_mgr->m_confDebugWhisper)
+            {
+                std::ostringstream out;
+
+                // calculate how much money bot loots
+                uint32 copper = loot->GetGoldAmount();
+                uint32 gold = uint32(copper / 10000);
+                copper -= (gold * 10000);
+                uint32 silver = uint32(copper / 100);
+                copper -= (silver * 100);
+
+                out << "|r|cff009900" << m_bot->GetName() << " loots: " << "|h|cffffffff[|r|cff00ff00" << gold
+                << "|r|cfffffc00g|r|cff00ff00" << silver
+                << "|r|cffcdcdcds|r|cff00ff00" << copper
+                << "|r|cff993300c"
+                << "|h|cffffffff]";
+
+                TellMaster(out.str().c_str());
+            }
+
+            // send the money to the bot and remove it from the creature
+            loot->SendGold(m_bot);
+        }
+
+        if (!loot->AutoStore(m_bot, false, NULL_BAG, NULL_SLOT))
+        sLog.outDebug("PLAYERBOT Debug: Failed to get loot from pickpocketed NPC");
+
+        // release the loot whatever happened
+        loot->Release(m_bot);
+    }
+    return false; // ensures that the rogue only pick pockets target once
+}
+
 bool PlayerbotAI::HasSpellReagents(uint32 spellId)
 {
     const SpellEntry* const pSpellInfo = sSpellStore.LookupEntry(spellId);
