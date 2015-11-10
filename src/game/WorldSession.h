@@ -218,7 +218,7 @@ class MANGOS_DLL_SPEC WorldSession
         void SendTabardVendorActivate(ObjectGuid guid);
         void SendSpiritResurrect();
         void SendBindPoint(Creature* npc);
-        void SendGMTicketGetTicket(uint32 status, GMTicket* ticket = NULL);
+        void SendGMTicketGetTicket(uint32 status, GMTicket* ticket = nullptr);
 
         void SendAttackStop(Unit const* enemy);
 
@@ -294,8 +294,6 @@ class MANGOS_DLL_SPEC WorldSession
         bool LookingForGroup_auto_add;
 
         void BuildPartyMemberStatsChangedPacket(Player* player, WorldPacket* data);
-
-        void DoLootRelease(ObjectGuid lguid);
 
         // Account mute time
         time_t m_muteTime;
@@ -773,7 +771,7 @@ class MANGOS_DLL_SPEC WorldSession
         uint32 m_clientTimeDelay;
         uint32 m_Tutorials[8];
         TutorialDataState m_tutorialState;
-        ACE_Based::LockedQueue<WorldPacket*, ACE_Thread_Mutex> _recvQueue;
+        ACE_Based::LockedQueue<WorldPacket*> _recvQueue;
 };
 #endif
 /// @}
