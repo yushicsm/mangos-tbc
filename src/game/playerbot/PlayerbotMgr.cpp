@@ -27,7 +27,7 @@ void PlayerbotMgr::SetInitialWorldSettings()
         sLog.outString("Playerbot: Using configuration file %s",_PLAYERBOT_CONFIG);
 
     //Check playerbot config file version
-    if (botConfig.GetInDefault("ConfVersion", 0) != PLAYERBOT_CONF_VERSION)
+    if (botConfig.GetIntDefault("ConfVersion", 0) != PLAYERBOT_CONF_VERSION)
         sLog.outError("Playerbot: Configuration file version doesn't match expected version. Some config variables may be wrong or missing.");
 }
 
