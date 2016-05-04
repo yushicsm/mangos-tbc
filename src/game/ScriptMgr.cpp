@@ -721,6 +721,31 @@ void ScriptMgr::LoadScripts(ScriptMapMapName& scripts, const char* tablename)
             case SCRIPT_COMMAND_DESPAWN_GO:                 // 40
             case SCRIPT_COMMAND_RESPAWN:                    // 41
                 break;
+            case SCRIPT_COMMAND_SET_EQUIPMENT_SLOTS:        // 42
+            {
+                if (tmp.textId[0] < 0 || tmp.textId[1] < 0 || tmp.textId[2] < 0)
+                {
+                    sLog.outErrorDb("Table `%s` has invalid equipment slot (dataint = %u, dataint2 = %u, dataint3 = %u) in SCRIPT_COMMAND_SET_EQUIPMENT_SLOTS for script id %u", tablename, tmp.textId[0], tmp.textId[1], tmp.textId[2], tmp.id);
+                    continue;
+                }
+                break;
+            }
+            case SCRIPT_COMMAND_RESET_GO:                   // 43
+                break;
+            case SCRIPT_COMMAND_UPDATE_TEMPLATE:            // 44
+            {
+                if (!sCreatureStorage.LookupEntry<CreatureInfo>(tmp.updateTemplate.newTemplate))
+                {
+                    sLog.outErrorDb("Table `%s` uses nonexistent creature entry %u in SCRIPT_COMMAND_UPDATE_TEMPLATE for script id %u.", tablename, tmp.updateTemplate.newTemplate, tmp.id);
+                    continue;
+                }
+                if (tmp.updateTemplate.newFactionTeam != 0 && tmp.updateTemplate.newFactionTeam != 1)
+                {
+                    sLog.outErrorDb("Table `%s` uses nonexistent faction team %u in SCRIPT_COMMAND_UPDATE_TEMPLATE for script id %u.", tablename, tmp.updateTemplate.newFactionTeam, tmp.id);
+                    continue;
+                }
+                break;
+            }
             default:
             {
                 sLog.outErrorDb("Table `%s` unknown command %u, skipping.", tablename, tmp.command);
@@ -1412,7 +1437,7 @@ bool ScriptAction::HandleScriptStep()
             float z = m_script->z;
             float o = m_script->o;
 
-            Creature* pCreature = pSource->SummonCreature(m_script->summonCreature.creatureEntry, x, y, z, o, m_script->summonCreature.despawnDelay ? TEMPSUMMON_TIMED_OOC_OR_DEAD_DESPAWN : TEMPSUMMON_DEAD_DESPAWN, m_script->summonCreature.despawnDelay, (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL) ? true : false);
+            Creature* pCreature = pSource->SummonCreature(m_script->summonCreature.creatureEntry, x, y, z, o, m_script->summonCreature.despawnDelay ? TEMPSUMMON_TIMED_OOC_OR_DEAD_DESPAWN : TEMPSUMMON_DEAD_DESPAWN, m_script->summonCreature.despawnDelay, (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL) ? true : false, m_script->textId[0] == 1);
             if (!pCreature)
             {
                 sLog.outErrorDb(" DB-SCRIPTS: Process table `%s` id %u, command %u failed for creature (entry: %u).", m_table, m_script->id, m_script->command, m_script->summonCreature.creatureEntry);
@@ -1609,7 +1634,7 @@ bool ScriptAction::HandleScriptStep()
             if (LogIfNotCreature(pSource))
                 break;
 
-            ((Creature*)pSource)->SetActiveObjectState(m_script->activeObject.activate);
+            ((Creature*)pSource)->SetActiveObjectState(!!m_script->activeObject.activate);
             break;
         }
         case SCRIPT_COMMAND_SET_FACTION:                    // 22
@@ -1962,7 +1987,7 @@ bool ScriptAction::HandleScriptStep()
                     pSource->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_FLY_ANIM);
             }
 
-            ((Creature*)pSource)->SetLevitate(m_script->fly.fly);
+            ((Creature*)pSource)->SetLevitate(!!m_script->fly.fly);
             break;
         }
         case SCRIPT_COMMAND_DESPAWN_GO:                     // 40
@@ -1980,6 +2005,63 @@ bool ScriptAction::HandleScriptStep()
                 break;
 
             ((Creature*)pTarget)->Respawn();
+            break;
+        }
+        case SCRIPT_COMMAND_SET_EQUIPMENT_SLOTS:            // 42
+        {
+            if (LogIfNotCreature(pSource))
+                return false;
+
+            Creature* pCSource = static_cast<Creature*>(pSource);
+            // reset default
+            if (m_script->setEquipment.resetDefault)
+            {
+                pCSource->LoadEquipment(pCSource->GetCreatureInfo()->EquipmentTemplateId, true);
+                break;
+            }
+
+            // main hand
+            if (m_script->textId[0] >= 0)
+                pCSource->SetVirtualItem(VIRTUAL_ITEM_SLOT_0, m_script->textId[0]);
+
+            // off hand
+            if (m_script->textId[1] >= 0)
+                pCSource->SetVirtualItem(VIRTUAL_ITEM_SLOT_1, m_script->textId[1]);
+
+            // ranged
+            if (m_script->textId[2] >= 0)
+                pCSource->SetVirtualItem(VIRTUAL_ITEM_SLOT_2, m_script->textId[2]);
+            break;
+        }
+        case SCRIPT_COMMAND_RESET_GO:                       // 43
+        {
+            if (LogIfNotGameObject(pTarget))
+                break;
+
+            GameObject* pGoTarget = static_cast<GameObject*>(pTarget);
+            switch (pGoTarget->GetGoType())
+            {
+                case GAMEOBJECT_TYPE_DOOR:
+                case GAMEOBJECT_TYPE_BUTTON:
+                    pGoTarget->ResetDoorOrButton();
+                    break;
+                default:
+                    sLog.outErrorDb(" DB-SCRIPTS: Process table `%s` id %u, command %u failed for gameobject(buddyEntry: %u). Gameobject is not a door or button", m_table, m_script->id, m_script->command, m_script->buddyEntry);
+                    break;
+            }
+            break;
+        }
+        case SCRIPT_COMMAND_UPDATE_TEMPLATE:                // 44
+        {
+            if (LogIfNotCreature(pSource))
+                return false;
+
+            Creature* pCSource = static_cast<Creature*>(pSource);
+
+            if (pCSource->GetEntry() != m_script->updateTemplate.newTemplate)
+                pCSource->UpdateEntry(m_script->updateTemplate.newTemplate, m_script->updateTemplate.newFactionTeam ? HORDE : ALLIANCE);
+            else
+                sLog.outErrorDb(" DB-SCRIPTS: Process table `%s` id %u, command %u failed. Source already has specified creature entry.", m_table, m_script->id, m_script->command);
             break;
         }
         default:

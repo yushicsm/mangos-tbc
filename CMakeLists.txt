@@ -20,8 +20,6 @@ project(CMaNGOS)
 
 cmake_minimum_required(VERSION 2.8.12)
 
-set(MANGOS_VERSION 0.12.3)
-
 include(cmake/common.cmake)
 
 # Set RPATH-handing (CMake parameters)
@@ -71,7 +69,7 @@ find_package(Git)
 # check if the platform supports precomiled headers
 find_package(PCHSupport)
 
-# TODO: remove this (refactor ACE & TBB CMake code)
+# TODO: remove this (refactor TBB CMake code)
 # VS100 uses MSBuild.exe instead of devenv.com, so force it to use devenv.com
 if(WIN32 AND MSVC_VERSION MATCHES 1600)
   find_package(VisualStudio2010)
@@ -98,25 +96,12 @@ endif()
 set(CMAKE_INSTALL_RPATH ${LIBS_DIR})
 set(CMAKE_INSTALL_NAME_DIR ${LIBS_DIR})
 
-# Find needed packages and if necessery abort if something important is missing
-unset(ACE_INCLUDE_DIR CACHE)
-unset(ACE_LIBRARIES CACHE)
-unset(ACE_LIBRARIES_DIR CACHE)
-unset(ACE_INCLUDE_DIR)
-unset(ACE_LIBRARIES)
-unset(ACE_LIBRARIES_DIR)
-if(ACE_USE_EXTERNAL)
-  find_package(ACE)
-  if(NOT ACE_FOUND)
-    message(FATAL_ERROR
-      "This project requires ACE installed when ACE_USE_EXTERNAL is set. Please download the ACE Micro Release Kit from http://download.dre.vanderbilt.edu/ and install it. If this script didn't find ACE and it was correctly installed please set ACE_ROOT to the correct path."
-    )
-  endif()
-  if(EXISTS ${ACE_INCLUDE_DIR}/ace/Stack_Trace.h)
-    set(HAVE_ACE_STACK_TRACE_H ON) # config.h.cmake
-  endif()
+find_package(Boost REQUIRED COMPONENTS system program_options thread)
+
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
 else()
-  include(cmake/macros/ImportACE.cmake)
+  message(FATAL_ERROR "This project requires boost.  Please install from http://www.boost.org")
 endif()
 
 if(NOT USE_STD_MALLOC)
@@ -267,15 +252,11 @@ if(XCODE)
   endif()
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
 add_subdirectory(dep) # TODO: add vmap extractor build support
 
 # Add definitions for all build types
 # Don't place this above 'dep' subdirectory! Because of defines build will crash.
 set(DEFINITIONS
-  HAVE_CONFIG_H
-  VERSION="${MANGOS_VERSION}"
   SYSCONFDIR="${CONF_DIR}/"
 )
 
@@ -296,9 +277,7 @@ if(USE_STD_MALLOC)
   set(DEFINITIONS ${DEFINITIONS} USE_STANDARD_MALLOC)
 endif()
 
-set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS}")
-set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_RELEASE "${DEFINITIONS_RELEASE}")
-set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "${DEFINITIONS_DEBUG}")
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS};$<$<CONFIG:Release>:${DEFINITIONS_RELEASE}>;$<$<CONFIG:Debug>:${DEFINITIONS_DEBUG}>")
 
 add_subdirectory(src)
 # if(SQL)

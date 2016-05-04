@@ -49,9 +49,11 @@
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
 
-#include <limits>
 #include "ItemEnchantmentMgr.h"
 #include "LootMgr.h"
+
+#include <limits>
+#include <cstdarg>
 
 INSTANTIATE_SINGLETON_1(ObjectMgr);
 
@@ -6288,7 +6290,7 @@ void ObjectMgr::LoadReputationOnKill()
         Field* fields = result->Fetch();
         bar.step();
 
-        uint32 creature_id = fields[0].GetUInt32();
+        const uint32 creature_id = fields[0].GetUInt32();
 
         ReputationOnKillEntry repOnKill;
         repOnKill.repfaction1          = fields[1].GetUInt32();
@@ -6299,7 +6301,7 @@ void ObjectMgr::LoadReputationOnKill()
         repOnKill.is_teamaward2        = fields[6].GetBool();
         repOnKill.reputation_max_cap2  = fields[7].GetUInt32();
         repOnKill.repvalue2            = fields[8].GetInt32();
-        repOnKill.team_dependent       = fields[9].GetUInt8();
+        repOnKill.team_dependent       = !!fields[9].GetUInt8();
 
         if (!GetCreatureTemplate(creature_id))
         {
@@ -7320,16 +7322,12 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
             return faction && player->GetReputationMgr().GetRank(faction) >= ReputationRank(m_value2);
         }
         case CONDITION_TEAM:
-            switch (conditionSourceType)
-            {
-                case CONDITION_FROM_REFERING_LOOT:
-                    if (sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
-                        return true;
-                    break;
-                default:
-                    return uint32(player->GetTeam()) == m_value1;
-                    break;
-            }
+        {
+            if (conditionSourceType == CONDITION_FROM_REFERING_LOOT && sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
+                return true;
+            else
+                return uint32(player->GetTeam()) == m_value1;
+        }
         case CONDITION_SKILL:
             return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) >= m_value2;
         case CONDITION_QUESTREWARDED:
@@ -7547,7 +7545,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
             MaNGOS::CreatureLastSearcher<MaNGOS::NearestCreatureEntryWithLiveStateInObjectRangeCheck> searcher(creature, creature_check);
             Cell::VisitGridObjects(player, searcher, m_value2);
 
-            return creature;
+            return !!creature;
         }
         default:
             return false;
@@ -8498,8 +8496,7 @@ void ObjectMgr::LoadActiveEntities(Map* _map)
     }
 
     // Load active objects for _map
-    std::set<uint32> const* mapList = sWorld.getConfigForceLoadMapIds();
-    if (mapList && mapList->find(_map->GetId()) != mapList->end())
+    if (sWorld.isForceLoadMap(_map->GetId()))
     {
         for (CreatureDataMap::const_iterator itr = mCreatureDataMap.begin(); itr != mCreatureDataMap.end(); ++itr)
         {
