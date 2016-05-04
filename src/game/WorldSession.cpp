@@ -130,6 +130,9 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         else if (GetPlayer()->GetPlayerbotMgr())
             GetPlayer()->GetPlayerbotMgr()->HandleMasterOutgoingPacket(*packet);
     }
+    
+    if (!m_Socket)
+        return;
 
     if (m_Socket->IsClosed())
         return;
@@ -341,7 +344,7 @@ bool WorldSession::Update(PacketFilter& updater)
         ///- If necessary, log the player out
         const time_t currTime = time(nullptr);
 
-        if (m_Socket->IsClosed() || (ShouldLogOut(currTime) && !m_playerLoading))
+        if (!m_Socket || m_Socket->IsClosed() || (ShouldLogOut(currTime) && !m_playerLoading))
         {
             LogoutPlayer(true);
             return false;
@@ -489,7 +492,7 @@ void WorldSession::LogoutPlayer(bool Save)
 
         // remove player from the group if he is:
         // a) in group; b) not in raid group; c) logging out normally (not being kicked or disconnected)
-        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && !m_Socket->IsClosed())
+        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && (!m_Socket || m_Socket->IsClosed()))
             _player->RemoveFromGroup();
 
         ///- Send update to group
@@ -542,7 +545,7 @@ void WorldSession::LogoutPlayer(bool Save)
 /// Kick a player out of the World
 void WorldSession::KickPlayer()
 {
-    if (m_Socket->IsClosed())
+    if (m_Socket && m_Socket->IsClosed())
         m_Socket->Close();
 }
 
