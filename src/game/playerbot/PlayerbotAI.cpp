@@ -2241,56 +2241,70 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
             WorldPacket p(packet); // (8+1+4+1+1+4+4+4+4+4+1)
             ObjectGuid guid;
             uint8 loot_type;
-            uint32 gold;
-            uint8 items;
 
             p >> guid;      // 8 corpse guid
             p >> loot_type; // 1 loot type
-            p >> gold;      // 4 money on corpse
-            p >> items;     // 1 number of items on corpse
 
-            // DEBUG_LOG("guid (%s) loot_type (%u) gold (%u) items (%u)",guid.GetString().c_str(),loot_type,gold,items);
-
-            if (gold > 0)
+            // Create the loot object and check it exists
+            Loot* loot = sLootMgr.GetLoot(m_bot, guid);
+            if (!loot)
             {
-                WorldPacket* const packet = new WorldPacket(CMSG_LOOT_MONEY, 0);
-                m_bot->GetSession()->QueuePacket(packet);
+                sLog.outError("PLAYERBOT Debug Error cannot get loot object info in SMSG_LOOT_RESPONSE!");
+                return;
             }
-            for (uint8 i = 0; i < items; ++i)
+
+            // Pickup money
+            if (loot->GetGoldAmount())
+            loot->SendGold(m_bot);
+
+            // Pick up the items
+            // Get the list of items first and iterate it
+            LootItemList lootList;
+            loot->GetLootItemsListFor(m_bot, lootList);
+
+            for (LootItemList::const_iterator lootItr = lootList.begin(); lootItr != lootList.end(); ++lootItr)
             {
-                uint32 itemid;
-                uint32 itemcount;
-                uint8 lootslot_type;
-                uint8 itemindex;
+            LootItem* lootItem = *lootItr;
 
-                p >> itemindex;         // 1 counter
-                p >> itemid;            // 4 itemid
-                p >> itemcount;         // 4 item stack count
-                p.read_skip<uint32>();  // 4 item model
-                p.read_skip<uint32>();  // 4 randomSuffix
-                p.read_skip<uint32>();  // 4 randomPropertyId
-                p >> lootslot_type;     // 1 LootSlotType
-
-                // DEBUG_LOG("SMSG_LOOT_RESPONSE itemindex (%u) itemid (%u) itemcount (%u) lootslot_type (%u)",itemindex, itemid, itemcount, lootslot_type);
-
-                if (lootslot_type != LOOT_SLOT_NORMAL && lootslot_type != LOOT_SLOT_OWNER)
+                // Skip non lootable items
+                if (lootItem->GetSlotTypeForSharedLoot(m_bot, loot) != LOOT_SLOT_NORMAL)
                     continue;
 
-                // skinning or collect loot flag = just auto loot everything for getting object
-                // corpse = run checks
-                if (loot_type == LOOT_SKINNING || HasCollectFlag(COLLECT_FLAG_LOOT) ||
-                    (loot_type == LOOT_CORPSE && (IsInQuestItemList(itemid) || IsItemUseful(itemid))))
+                // If bot is skinning or has collect all orders: autostore all items
+                // else bot has order to only loot quest or useful items
+                if (loot_type == LOOT_SKINNING || HasCollectFlag(COLLECT_FLAG_LOOT) || (loot_type == LOOT_CORPSE && (IsInQuestItemList(lootItem->itemId) || IsItemUseful(lootItem->itemId))))
                 {
-                    WorldPacket* const packet = new WorldPacket(CMSG_AUTOSTORE_LOOT_ITEM, 1);
-                    *packet << itemindex;
-                    m_bot->GetSession()->QueuePacket(packet);
+                    // item may be blocked by roll system or already looted or another cheating possibility
+                    if (lootItem->isBlocked || lootItem->GetSlotTypeForSharedLoot(m_bot, loot) == MAX_LOOT_SLOT_TYPE)
+                    {
+                        sLog.outError("PLAYERBOT debug Bot %s have no right to loot itemId(%u)", m_bot->GetGuidStr().c_str(), lootItem->itemId);
+                        continue;
+                    }
+
+                    // Try to send the item to bot
+                    InventoryResult result = loot->SendItem(m_bot, lootItem);
+
+                    // If inventory is full: release loot
+                    if (result == EQUIP_ERR_INVENTORY_FULL)
+                    {
+                        loot->Release(m_bot);
+                        return;
+                    }
+
+                    ObjectGuid const& lguid = loot->GetLootGuid();
+
+                    // Check that bot has either equiped or received the item
+                    // then change item's loot state
+                    if (result == EQUIP_ERR_OK && lguid.IsItem())
+                    {
+                        if (Item* item = m_bot->GetItemByGuid(lguid))
+                            item->SetLootState(ITEM_LOOT_CHANGED);
+                    }
                 }
             }
 
             // release loot
-            WorldPacket* const packet = new WorldPacket(CMSG_LOOT_RELEASE, 8);
-            *packet << guid;
-            m_bot->GetSession()->QueuePacket(packet);
+            loot->Release(m_bot);
 
             return;
         }
