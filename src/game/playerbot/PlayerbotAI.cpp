@@ -4615,7 +4615,7 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
             m_bot->SetFacingTo(m_bot->GetAngle(pTarget));
             SpellCastTargets targets;
             targets.setUnitTarget(pTarget);
-            spell->prepare(&targets);
+            spell->SpellStart(&targets);
             SetIgnoreUpdateTime(10);
         }
 
@@ -4661,7 +4661,7 @@ void PlayerbotAI::UpdateAI(const uint32 /*p_time*/)
         else
         {
             SpellCastTargets targets;
-            spell->prepare(&targets);
+            spell->SpellStart(&targets);
             SetIgnoreUpdateTime(6);
         }
 
@@ -8709,7 +8709,7 @@ void PlayerbotAI::_HandleCommandProcess(std::string &text, Player &fromPlayer)
         m_itemTarget = reagent->GetProto()->ItemId;
         targets.setItemTarget(reagent);
         Spell *spell = new Spell(m_bot, spellInfo, false);
-        spell->prepare(&targets);
+        spell->SpellStart(&targets);
     }
 }
 
@@ -9035,7 +9035,7 @@ void PlayerbotAI::_HandleCommandEnchant(std::string &text, Player &fromPlayer)
             SpellCastTargets targets;
             targets.setItemTarget(iTarget);
             Spell *spell = new Spell(m_bot, spellInfo, false);
-            spell->prepare(&targets);
+            spell->SpellStart(&targets);
             SetState(BOTSTATE_DELAYED);
             SetIgnoreUpdateTime(1);
         }
@@ -9234,14 +9234,14 @@ void PlayerbotAI::_HandleCommandCraft(std::string &text, Player &fromPlayer)
             }
             else
             {
-                spell->prepare(&targets);
+                spell->SpellStart(&targets);
                 m_CraftSpellId = spellId;
                 SetState(BOTSTATE_DELAYED);
                 SetIgnoreUpdateTime(6);
             }
         }
         else
-            spell->prepare(&targets);
+            spell->SpellStart(&targets);
         return;
     }
 
