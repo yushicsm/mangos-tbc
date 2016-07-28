@@ -76,7 +76,7 @@ class MANGOS_DLL_SPEC ChatHandler
     public:
         explicit ChatHandler(WorldSession* session);
         explicit ChatHandler(Player* player);
-        ~ChatHandler();
+        virtual ~ChatHandler();
 
         static char* LineFromMessage(char*& pos) { char* start = strtok(pos, "\n"); pos = nullptr; return start; }
 
@@ -121,7 +121,8 @@ class MANGOS_DLL_SPEC ChatHandler
             ObjectGuid const& targetGuid = ObjectGuid(), char const* targetName = nullptr,
             char const* channelName = nullptr);
     protected:
-        explicit ChatHandler() : m_session(nullptr) {}      // for CLI subclass
+        explicit ChatHandler() : m_session(nullptr), sentErrorMessage(false)
+        {}      // for CLI subclass
 
         bool hasStringAbbr(const char* name, const char* part);
 
@@ -639,6 +640,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool ExtractPlayerTarget(char** args, Player** player, ObjectGuid* player_guid = nullptr, std::string* player_name = nullptr);
         // select by arg (name/link) or in-game selection online/offline player
 
+        std::string petLink(std::string const& name) const { return m_session ? "|cffffffff|Hpet:" + name + "|h[" + name + "]|h|r" : name; }
         std::string playerLink(std::string const& name) const { return m_session ? "|cffffffff|Hplayer:" + name + "|h[" + name + "]|h|r" : name; }
         std::string GetNameLink(Player* chr) const;
 

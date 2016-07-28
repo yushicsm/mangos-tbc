@@ -40,7 +40,6 @@
 #include "CellImpl.h"
 #include "ObjectMgr.h"
 #include "ObjectAccessor.h"
-#include "CreatureAI.h"
 #include "Formulas.h"
 #include "Group.h"
 #include "Guild.h"
@@ -399,7 +398,7 @@ UpdateMask Player::updateVisualBits;
 
 Player::Player(WorldSession* session): Unit(), m_mover(this), m_camera(this), m_reputationMgr(this)
 {
-    m_transport = 0;
+    m_transport = nullptr;
 
     // Playerbot mod:
     m_playerbotAI = 0;
@@ -991,7 +990,6 @@ int32 Player::getMaxTimer(MirrorTimerType timer)
         default:
             return 0;
     }
-    return 0;
 }
 
 void Player::UpdateMirrorTimers()
@@ -2096,6 +2094,9 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
     if (!guid || !IsInWorld() || IsTaxiFlying())
         return nullptr;
 
+    // set player as interacting
+    DoInteraction(guid);
+
     // not in interactive state
     if (hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL))
         return nullptr;
@@ -2137,11 +2138,14 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask)
     return unit;
 }
 
-GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameobject_type) const
+GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameobject_type)
 {
     // some basic checks
     if (!guid || !IsInWorld() || IsTaxiFlying())
         return nullptr;
+
+    // set player as interacting
+    DoInteraction(guid);
 
     // not in interactive state
     if (hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL))
@@ -2388,11 +2392,13 @@ void Player::GiveLevel(uint32 level)
     if (level == getLevel())
         return;
 
+    uint32 plClass = getClass();
+
     PlayerLevelInfo info;
-    sObjectMgr.GetPlayerLevelInfo(getRace(), getClass(), level, &info);
+    sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
 
     PlayerClassLevelInfo classInfo;
-    sObjectMgr.GetPlayerClassLevelInfo(getClass(), level, &classInfo);
+    sObjectMgr.GetPlayerClassLevelInfo(plClass, level, &classInfo);
 
     // send levelup info to client
     WorldPacket data(SMSG_LEVELUP_INFO, (4 + 4 + MAX_POWERS * 4 + MAX_STATS * 4));
@@ -2437,8 +2443,6 @@ void Player::GiveLevel(uint32 level)
     SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
     if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
         SetPower(POWER_RAGE, GetMaxPower(POWER_RAGE));
-    SetPower(POWER_FOCUS, 0);
-    SetPower(POWER_HAPPINESS, 0);
 
     // update level to hunter/summon pet
     if (Pet* pet = GetPet())
@@ -2491,13 +2495,16 @@ void Player::InitStatsForLevel(bool reapplyMods)
         _RemoveAllStatBonuses();
 
     PlayerClassLevelInfo classInfo;
-    sObjectMgr.GetPlayerClassLevelInfo(getClass(), getLevel(), &classInfo);
+
+    uint32 level = getLevel();
+    uint32 plClass = getClass();
+    sObjectMgr.GetPlayerClassLevelInfo(plClass, level, &classInfo);
 
     PlayerLevelInfo info;
-    sObjectMgr.GetPlayerLevelInfo(getRace(), getClass(), getLevel(), &info);
+    sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
 
     SetUInt32Value(PLAYER_FIELD_MAX_LEVEL, sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL));
-    SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr.GetXPForLevel(getLevel()));
+    SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr.GetXPForLevel(level));
 
     // reset before any aura state sources (health set/aura apply)
     SetUInt32Value(UNIT_FIELD_AURASTATE, 0);
@@ -2628,8 +2635,6 @@ void Player::InitStatsForLevel(bool reapplyMods)
     SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY));
     if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
         SetPower(POWER_RAGE, GetMaxPower(POWER_RAGE));
-    SetPower(POWER_FOCUS, 0);
-    SetPower(POWER_HAPPINESS, 0);
 
     // update level to hunter/summon pet
     if (Pet* pet = GetPet())
@@ -3333,18 +3338,18 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bo
             PlayerSpellMap::iterator prev_itr = m_spells.find(prev_id);
             if (prev_itr != m_spells.end())
             {
-                PlayerSpell& playerSpell = prev_itr->second;
-                if (playerSpell.dependent != cur_dependent)
+                PlayerSpell& spell = prev_itr->second;
+                if (spell.dependent != cur_dependent)
                 {
-                    playerSpell.dependent = cur_dependent;
-                    if (playerSpell.state != PLAYERSPELL_NEW)
-                        playerSpell.state = PLAYERSPELL_CHANGED;
+                    spell.dependent = cur_dependent;
+                    if (spell.state != PLAYERSPELL_NEW)
+                        spell.state = PLAYERSPELL_CHANGED;
                 }
 
                 // now re-learn if need re-activate
-                if (cur_active && !playerSpell.active && learn_low_rank)
+                if (cur_active && !spell.active && learn_low_rank)
                 {
-                    if (addSpell(prev_id, true, false, playerSpell.dependent, playerSpell.disabled))
+                    if (addSpell(prev_id, true, false, spell.dependent, spell.disabled))
                     {
                         // downgrade spell ranks in spellbook and action bar
                         WorldPacket data(SMSG_SUPERCEDED_SPELL, 4);
@@ -3554,7 +3559,7 @@ bool Player::resetTalents(bool no_cost)
 
         if (GetMoney() < cost)
         {
-            SendBuyError(BUY_ERR_NOT_ENOUGHT_MONEY, 0, 0, 0);
+            SendBuyError(BUY_ERR_NOT_ENOUGHT_MONEY, nullptr, 0, 0);
             return false;
         }
     }
@@ -4674,7 +4679,7 @@ void Player::RepopAtGraveyard()
         SpawnCorpseBones();
     }
 
-    WorldSafeLocsEntry const* ClosestGrave = nullptr;
+    WorldSafeLocsEntry const* ClosestGrave;
 
     // Special handle for battleground maps
     if (BattleGround* bg = GetBattleGround())
@@ -4808,7 +4813,7 @@ void Player::HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, floa
         return;
     }
 
-    float val = 1.0f;
+    float val;
 
     switch (modType)
     {
@@ -6032,7 +6037,7 @@ void Player::CheckAreaExploreAndOutdoor()
             else
             {
                 int32 diff = int32(getLevel()) - p->area_level;
-                uint32 XP = 0;
+                uint32 XP;
                 if (diff < -5)
                 {
                     XP = uint32(sObjectMgr.GetBaseXP(getLevel() + 5) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
@@ -6313,7 +6318,6 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, float honor)
                 return false;
 
             float f = 1;                                    // need for total kills (?? need more info)
-            uint32 k_grey = 0;
             uint32 k_level = getLevel();
             uint32 v_level = pVictim->getLevel();
 
@@ -6340,7 +6344,7 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, float honor)
                     victim_guid.Clear();                    // Don't show HK: <rank> message, only log.
             }
 
-            k_grey = MaNGOS::XP::GetGrayLevel(k_level);
+            uint32 k_grey = MaNGOS::XP::GetGrayLevel(k_level);
 
             if (v_level <= k_grey)
                 return false;
@@ -6606,7 +6610,7 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
     else                                                    // in friendly area
     {
         if (IsPvP() && !HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_IN_PVP) && pvpInfo.endTimer == 0)
-            pvpInfo.endTimer = time(0);                     // start toggle-off
+            pvpInfo.endTimer = time(nullptr);               // start toggle-off
     }
 
     if (zone->flags & AREA_FLAG_SANCTUARY)                  // in sanctuary
@@ -7386,7 +7390,7 @@ void Player::CastItemUseSpell(Item* item, SpellCastTargets const& targets, uint8
         spell->m_CastItem = item;
         spell->m_cast_count = cast_count;                   // set count of casts
         spell->m_currentBasePoints[EFFECT_INDEX_0] = learning_spell_id;
-        spell->prepare(&targets);
+        spell->SpellStart(&targets);
         return;
     }
 
@@ -7416,7 +7420,7 @@ void Player::CastItemUseSpell(Item* item, SpellCastTargets const& targets, uint8
         Spell* spell = new Spell(this, spellInfo, (count > 0));
         spell->m_CastItem = item;
         spell->m_cast_count = cast_count;                   // set count of casts
-        spell->prepare(&targets);
+        spell->SpellStart(&targets);
 
         ++count;
     }
@@ -9394,6 +9398,10 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool
                     return EQUIP_ERR_CANT_DO_RIGHT_NOW;     // maybe exist better err
 
                 if (IsNonMeleeSpellCasted(false))
+                    return EQUIP_ERR_CANT_DO_RIGHT_NOW;
+                
+                // prevent equip item in Spirit of Redemption (Aura: 27827)
+                if (HasAuraType(SPELL_AURA_SPIRIT_OF_REDEMPTION))
                     return EQUIP_ERR_CANT_DO_RIGHT_NOW;
             }
 
@@ -13721,12 +13729,8 @@ void Player::TalkedToCreature(uint32 entry, ObjectGuid guid)
                     if (qInfo->ReqSpell[j] > 0 || qInfo->ReqCreatureOrGOId[j] < 0)
                         continue;
 
-                    uint32 reqTarget = 0;
-
-                    if (qInfo->ReqCreatureOrGOId[j] > 0)    // creature activate objectives
-                        // checked at quest_template loading
-                        reqTarget = qInfo->ReqCreatureOrGOId[j];
-                    else
+                    uint32 reqTarget = qInfo->ReqCreatureOrGOId[j];
+                    if (reqTarget <= 0)    // creature activate objectives
                         continue;
 
                     if (reqTarget == entry)
@@ -16756,7 +16760,7 @@ void Player::PetSpellInitialize()
     uint8 addlist = 0;
     data << uint8(addlist);                                 // placeholder
 
-    if (pet->IsPermanentPetFor(this))
+    if (pet->isControlled())
     {
         // spells loop
         for (PetSpellMap::const_iterator itr = pet->m_spells.begin(); itr != pet->m_spells.end(); ++itr)
@@ -17017,11 +17021,12 @@ void Player::RemovePetitionsAndSigns(ObjectGuid guid, uint32 type)
 {
     uint32 lowguid = guid.GetCounter();
 
-    QueryResult* result = nullptr;
+    QueryResult* result;
     if (type == 10)
         result = CharacterDatabase.PQuery("SELECT ownerguid,petitionguid FROM petition_sign WHERE playerguid = '%u'", lowguid);
     else
         result = CharacterDatabase.PQuery("SELECT ownerguid,petitionguid FROM petition_sign WHERE playerguid = '%u' AND type = '%u'", lowguid, type);
+
     if (result)
     {
         do                                                  // this part effectively does nothing, since the deletion / modification only takes place _after_ the PetitionQuery. Though I don't know if the result remains intact if I execute the delete query beforehand.
@@ -17256,13 +17261,11 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     uint32 totalcost = 0;
 
     uint32 prevnode = sourcenode;
-    uint32 lastnode = 0;
 
     for (uint32 i = 1; i < nodes.size(); ++i)
     {
         uint32 path, cost;
-
-        lastnode = nodes[i];
+        uint32 lastnode = nodes[i];
         sObjectMgr.GetTaxiPath(prevnode, lastnode, path, cost);
 
         if (!path)
@@ -17349,7 +17352,6 @@ void Player::ContinueTaxiFlight()
 
     TaxiPathNodeList const& nodeList = sTaxiPathNodesByPath[path];
 
-    float distPrev = MAP_SIZE * MAP_SIZE;
     float distNext =
         (nodeList[0].x - GetPositionX()) * (nodeList[0].x - GetPositionX()) +
         (nodeList[0].y - GetPositionY()) * (nodeList[0].y - GetPositionY()) +
@@ -17364,7 +17366,7 @@ void Player::ContinueTaxiFlight()
         if (node.mapid != GetMapId())
             continue;
 
-        distPrev = distNext;
+        float distPrev = distNext;
 
         distNext =
             (node.x - GetPositionX()) * (node.x - GetPositionX()) +
@@ -17635,7 +17637,7 @@ bool Player::BuyItemFromVendor(ObjectGuid vendorGuid, uint32 item, uint8 count, 
         return false;
     }
 
-    Item* pItem = nullptr;
+    Item* pItem;
 
     if ((bag == NULL_BAG && slot == NULL_SLOT) || IsInventoryPos(bag, slot))
     {
@@ -18876,8 +18878,8 @@ bool Player::IsSpellFitByClassAndRace(uint32 spell_id, uint32* pReqlevel /*= nul
         if (abilityEntry->classmask && (abilityEntry->classmask & classmask) == 0)
             continue;
 
-        SkillRaceClassInfoMapBounds bounds = sSpellMgr.GetSkillRaceClassInfoMapBounds(abilityEntry->skillId);
-        for (SkillRaceClassInfoMap::const_iterator itr = bounds.first; itr != bounds.second; ++itr)
+        SkillRaceClassInfoMapBounds raceBounds = sSpellMgr.GetSkillRaceClassInfoMapBounds(abilityEntry->skillId);
+        for (SkillRaceClassInfoMap::const_iterator itr = raceBounds.first; itr != raceBounds.second; ++itr)
         {
             SkillRaceClassInfoEntry const* skillRCEntry = itr->second;
             if ((skillRCEntry->raceMask & racemask) && (skillRCEntry->classMask & classmask))
@@ -19337,6 +19339,24 @@ void Player::SetClientControl(Unit* target, uint8 allowMove)
     GetSession()->SendPacket(&data);
 }
 
+void Player::Uncharm()
+{
+    if (Unit* charm = GetCharm())
+    {
+        charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM);
+        charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
+        charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS_PET);
+        if (charm == GetMover())
+        {
+            SetMover(nullptr);
+            GetCamera().ResetView();
+            RemoveSpellsCausingAura(SPELL_AURA_MOD_INVISIBILITY);
+            SetCharm(nullptr);
+            SetClientControl(this, 1);
+        }
+    }
+}
+
 void Player::UpdateZoneDependentAuras()
 {
     // Some spells applied at enter into zone (with subzones), aura removed in UpdateAreaDependentAuras that called always at zone->area update
@@ -19371,7 +19391,7 @@ struct UpdateZoneDependentPetsHelper
     explicit UpdateZoneDependentPetsHelper(Player* _owner, uint32 zone, uint32 area) : owner(_owner), zone_id(zone), area_id(area) {}
     void operator()(Unit* unit) const
     {
-        if (unit->GetTypeId() == TYPEID_UNIT && ((Creature*)unit)->IsPet() && !((Pet*)unit)->IsPermanentPetFor(owner))
+        if (unit->GetTypeId() == TYPEID_UNIT && ((Creature*)unit)->IsPet() && !((Pet*)unit)->isControlled())
             if (uint32 spell_id = unit->GetUInt32Value(UNIT_CREATED_BY_SPELL))
                 if (SpellEntry const* spellEntry = sSpellStore.LookupEntry(spell_id))
                     if (sSpellMgr.GetSpellAllowedInLocationError(spellEntry, owner->GetMapId(), zone_id, area_id, owner) != SPELL_CAST_OK)
@@ -19935,7 +19955,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
     // 14.57 can be calculated by resolving damageperc formula below to 0
     if (z_diff >= 14.57f && !isDead() && !isGameMaster() && !HasMovementFlag(MOVEFLAG_ONTRANSPORT) &&
             !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
-            !HasAuraType(SPELL_AURA_FLY) && !IsImmunedToDamage(SPELL_SCHOOL_MASK_NORMAL))
+            !HasAuraType(SPELL_AURA_FLY) && !IsImmuneToDamage(SPELL_SCHOOL_MASK_NORMAL))
     {
         // Safe fall, fall height reduction
         int32 safe_fall = GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
@@ -20100,6 +20120,15 @@ void Player::UnsummonPetTemporaryIfAny()
         m_temporaryUnsummonedPetNumber = pet->GetCharmInfo()->GetPetNumber();
 
     pet->Unsummon(PET_SAVE_AS_CURRENT, this);
+}
+
+void Player::UnsummonPetIfAny()
+{
+    Pet* pet = GetPet();
+    if (!pet)
+        return;
+ 
+    pet->Unsummon(PET_SAVE_NOT_IN_SLOT, this);
 }
 
 void Player::ResummonPetTemporaryUnSummonedIfAny()
@@ -20446,4 +20475,20 @@ float Player::ComputeRest(time_t timePassed, bool offline /*= false*/, bool inRe
             bonus *= sWorld.getConfig(CONFIG_FLOAT_RATE_REST_OFFLINE_IN_WILDERNESS) / 4.0f; // bonus is reduced by 4 when not in rest place
     }
     return bonus;
+}
+
+// player is interacting so we have to remove non authorized aura
+void Player::DoInteraction(ObjectGuid const& interactObjGuid)
+{
+    if (interactObjGuid.IsUnit())
+    {
+        // remove some aura like stealth aura
+        RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TALK);
+    }
+    else if (interactObjGuid.IsGameObject())
+    {
+        // remove some aura like stealth aura
+        RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_USE);
+    }
+    SendForcedObjectUpdate();
 }

@@ -22,7 +22,6 @@
 #include "PoolManager.h"
 #include "SpellMgr.h"
 #include "Spell.h"
-#include "UpdateMask.h"
 #include "Opcodes.h"
 #include "WorldPacket.h"
 #include "World.h"
@@ -44,6 +43,8 @@
 
 GameObject::GameObject() : WorldObject(),
     m_model(nullptr),
+    m_captureSlider(0),
+    m_captureState(),
     m_goInfo(nullptr),
     m_displayInfo(nullptr)
 {
@@ -1660,7 +1661,7 @@ void GameObject::Use(Unit* user)
     SpellCastTargets targets;
     targets.setUnitTarget(user);
 
-    spell->prepare(&targets);
+    spell->SpellStart(&targets);
 }
 
 // overwrite WorldObject function for proper name localization

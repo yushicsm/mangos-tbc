@@ -36,7 +36,6 @@
 #include "PlayerDump.h"
 #include "SocialMgr.h"
 #include "Util.h"
-#include "ArenaTeam.h"
 #include "Language.h"
 #include "SpellMgr.h"
 

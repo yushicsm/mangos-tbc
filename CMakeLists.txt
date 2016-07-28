@@ -67,13 +67,8 @@ endif()
 find_package(Git)
 
 # check if the platform supports precomiled headers
-find_package(PCHSupport)
-
-# TODO: remove this (refactor TBB CMake code)
-# VS100 uses MSBuild.exe instead of devenv.com, so force it to use devenv.com
-if(WIN32 AND MSVC_VERSION MATCHES 1600)
-  find_package(VisualStudio2010)
-endif()
+#find_package(PCHSupport)
+include(cotire)
 
 # Override configuration-types - we don't use anything else than debug and release
 if(CMAKE_CONFIGURATION_TYPES)
@@ -83,17 +78,21 @@ if(CMAKE_CONFIGURATION_TYPES)
     FORCE)
 endif()
 
-set(BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
-set(CONF_DIR ${CMAKE_INSTALL_PREFIX}/etc)
+set(BIN_FOLDER_NAME bin)
+set(CONF_FOLDER_NAME etc)
+set(LIBS_FOLDER_NAME lib)
+
+set(BIN_DIR ${CMAKE_INSTALL_PREFIX}/${BIN_FOLDER_NAME})
+set(CONF_DIR ${CMAKE_INSTALL_PREFIX}/${CONF_FOLDER_NAME})
 # If win32 put it in the bin dir not lib
 if(WIN32)
-  set(LIBS_DIR ${CMAKE_INSTALL_PREFIX}/bin)
+  set(LIBS_DIR ${CMAKE_INSTALL_PREFIX}/${BIN_FOLDER_NAME})
 else()
-  set(LIBS_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+  set(LIBS_DIR ${CMAKE_INSTALL_PREFIX}/${LIBS_FOLDER_NAME})
 endif()
 
 # For Unix systems set the rpath so that libraries are found
-set(CMAKE_INSTALL_RPATH ${LIBS_DIR})
+set(CMAKE_INSTALL_RPATH ../${LIBS_FOLDER_NAME})
 set(CMAKE_INSTALL_NAME_DIR ${LIBS_DIR})
 
 find_package(Boost REQUIRED COMPONENTS system program_options thread)
@@ -102,25 +101,6 @@ if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "This project requires boost.  Please install from http://www.boost.org")
-endif()
-
-if(NOT USE_STD_MALLOC)
-  unset(TBB_INCLUDE_DIR CACHE)
-  unset(TBB_LIBRARIES CACHE)
-  unset(TBB_LIBRARIES_DIR CACHE)
-  unset(TBB_INCLUDE_DIR)
-  unset(TBB_LIBRARIES)
-  unset(TBB_LIBRARIES_DIR)
-  if(TBB_USE_EXTERNAL)
-    find_package(TBB)
-    if(NOT TBB_FOUND)
-      message(FATAL_ERROR
-        "This project requires TBB installed when TBB_USE_EXTERNAL is set. Please download the TBB Stable Release from http://www.threadingbuildingblocks.org/ and install it. If this script didn't find TBB and it was correctly installed please set TBB_ROOT to the correct path."
-      )
-    endif()
-  else()
-    include(cmake/macros/ImportTBB.cmake)
-  endif()
 endif()
 
 # Win32 delivered packages
@@ -180,13 +160,16 @@ if(DEFINED INCLUDE_BINDINGS_DIR AND INCLUDE_BINDINGS_DIR)
 else()
 endif()
 
-if(PCH AND NOT PCHSupport_FOUND)
-  set(PCH 0 CACHE BOOL
-    "Use precompiled headers"
-    FORCE)
-  message(WARNING "No PCH for your system possible but PCH was set to 1. Resetting it."
-  )
-endif()
+#if(PCH AND NOT PCHSupport_FOUND)
+#  set(PCH 0 CACHE BOOL
+#    "Use precompiled headers"
+#    FORCE)
+#  message(WARNING "No PCH for your system possible but PCH was set to 1. Resetting it."
+#  )
+#endif()
+
+set(DEFINITIONS_RELEASE NDEBUG)
+set(DEFINITIONS_DEBUG _DEBUG MANGOS_DEBUG)
 
 if(DEBUG)
   set(CMAKE_BUILD_TYPE Debug)
@@ -257,7 +240,7 @@ add_subdirectory(dep) # TODO: add vmap extractor build support
 # Add definitions for all build types
 # Don't place this above 'dep' subdirectory! Because of defines build will crash.
 set(DEFINITIONS
-  SYSCONFDIR="${CONF_DIR}/"
+  SYSCONFDIR="../${CONF_FOLDER_NAME}/"
 )
 
 if(POSTGRESQL)
@@ -266,18 +249,15 @@ else()
   set(DEFINITIONS ${DEFINITIONS} DO_MYSQL)
 endif()
 
-set(DEFINITIONS_RELEASE NDEBUG)
-set(DEFINITIONS_DEBUG _DEBUG MANGOS_DEBUG)
-
 if(WIN32)
   set(DEFINITIONS ${DEFINITIONS} WIN32 _WIN32)
 endif()
 
-if(USE_STD_MALLOC)
-  set(DEFINITIONS ${DEFINITIONS} USE_STANDARD_MALLOC)
+if(DEBUG)
+  set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS};${DEFINITIONS_DEBUG}")
+else()
+  set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS};${DEFINITIONS_RELEASE}")
 endif()
-
-set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${DEFINITIONS};$<$<CONFIG:Release>:${DEFINITIONS_RELEASE}>;$<$<CONFIG:Debug>:${DEFINITIONS_DEBUG}>")
 
 add_subdirectory(src)
 # if(SQL)

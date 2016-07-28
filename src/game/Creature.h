@@ -21,11 +21,8 @@
 
 #include "Common.h"
 #include "Unit.h"
-#include "UpdateMask.h"
-#include "ItemPrototype.h"
 #include "SharedDefines.h"
 #include "DBCEnums.h"
-#include "Database/DatabaseEnv.h"
 #include "Cell.h"
 
 #include <list>
@@ -59,6 +56,7 @@ enum CreatureExtraFlags
     CREATURE_EXTRA_FLAG_MMAP_FORCE_DISABLE     = 0x00004000,       // creature is forced to NOT use MMaps
     CREATURE_EXTRA_FLAG_WALK_IN_WATER          = 0x00008000,       // creature is forced to walk in water even it can swim
     CREATURE_EXTRA_FLAG_HAVE_NO_SWIM_ANIMATION = 0x00010000,       // we have to not set "swim" animation or creature will have "no animation"
+    CREATURE_EXTRA_FLAG_NO_MELEE               = 0x00020000,       // creature can't melee
 };
 
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
@@ -128,6 +126,7 @@ struct CreatureInfo
     uint32  SkinningLootId;
     uint32  KillCredit[MAX_KILL_CREDIT];
     uint32  MechanicImmuneMask;
+    uint32  SchoolImmuneMask;
     int32   ResistanceHoly;
     int32   ResistanceFire;
     int32   ResistanceNature;
@@ -548,6 +547,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         void FillGuidsListFromThreatList(GuidVector& guids, uint32 maxamount = 0);
 
         bool IsImmuneToSpell(SpellEntry const* spellInfo, bool castOnSelf) override;
+        bool IsImmuneToDamage(SpellSchoolMask meleeSchoolMask) override;
         bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const override;
 
         bool IsElite() const
@@ -640,7 +640,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         void SetDeathState(DeathState s) override;          // overwrite virtual Unit::SetDeathState
 
         bool LoadFromDB(uint32 guid, Map* map);
-        void SaveToDB();
+        virtual void SaveToDB();
         // overwrited in Pet
         virtual void SaveToDB(uint32 mapid, uint8 spawnMask);
         virtual void DeleteFromDB();                        // overwrited in Pet
@@ -688,7 +688,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         bool IsVisibleInGridForPlayer(Player* pl) const override;
 
-        void RemoveCorpse();
+        void RemoveCorpse(bool inPlace = false);
         bool IsDeadByDefault() const { return m_isDeadByDefault; };
 
         void ForcedDespawn(uint32 timeMSToDespawn = 0);
@@ -758,8 +758,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         // vendor items
         VendorItemCounts m_vendorItemCounts;
-
-        void _RealtimeSetCreatureInfo();
 
         uint32 m_lootMoney;
         ObjectGuid m_lootRecipientGuid;                     // player who will have rights for looting if m_lootGroupRecipient==0 or group disbanded

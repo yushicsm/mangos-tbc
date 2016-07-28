@@ -21,7 +21,6 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "Player.h"
-#include "World.h"
 #include "ObjectMgr.h"
 #include "ObjectGuid.h"
 #include "Group.h"
@@ -30,7 +29,6 @@
 #include "BattleGround/BattleGround.h"
 #include "MapManager.h"
 #include "MapPersistentStateMgr.h"
-#include "Util.h"
 #include "playerbot/PlayerbotMgr.h"
 
 //===================================================
@@ -1178,6 +1176,9 @@ static void RewardGroupAtKill_helper(Player* pGroupGuy, Unit* pVictim, uint32 co
 
             pGroupGuy->GiveXP(itr_xp, pVictim);
             if (Pet* pet = pGroupGuy->GetPet())
+                // TODO: Pets need to get exp based on their level diff to the target, not the owners.
+                // the whole RewardGroupAtKill needs a rewrite to match up with this anyways:
+                // http://wowwiki.wikia.com/wiki/Formulas:Mob_XP?oldid=228414
                 pet->GivePetXP(itr_xp / 2);
         }
 
@@ -1204,8 +1205,6 @@ void Group::RewardGroupAtKill(Unit* pVictim, Player* player_tap)
     bool PvP = pVictim->isCharmedOwnedByPlayerOrPlayer();
 
     // prepare data for near group iteration (PvP and !PvP cases)
-    uint32 xp = 0;
-
     uint32 count = 0;
     uint32 sum_level = 0;
     Player* member_with_max_level = nullptr;
@@ -1216,7 +1215,7 @@ void Group::RewardGroupAtKill(Unit* pVictim, Player* player_tap)
     if (member_with_max_level)
     {
         /// not get Xp in PvP or no not gray players in group
-        xp = (PvP || !not_gray_member_with_max_level) ? 0 : MaNGOS::XP::Gain(not_gray_member_with_max_level, pVictim);
+        uint32 xp = (PvP || !not_gray_member_with_max_level) ? 0 : MaNGOS::XP::Gain(not_gray_member_with_max_level, pVictim);
 
         /// skip in check PvP case (for speed, not used)
         bool is_raid = PvP ? false : sMapStore.LookupEntry(pVictim->GetMapId())->IsRaid() && isRaidGroup();

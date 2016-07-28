@@ -17,13 +17,11 @@
  */
 
 #include "Common.h"
-#include "Database/DatabaseEnv.h"
 #include "Opcodes.h"
 #include "Log.h"
 #include "Player.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include "UpdateMask.h"
 
 void WorldSession::HandleLearnTalentOpcode(WorldPacket& recv_data)
 {
@@ -52,10 +50,6 @@ void WorldSession::HandleTalentWipeConfirmOpcode(WorldPacket& recv_data)
 
     if (!unit->CanTrainAndResetTalentsOf(_player))
         return;
-
-    // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
-        GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
 
     if (!(_player->resetTalents()))
     {

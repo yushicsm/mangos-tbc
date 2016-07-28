@@ -18,7 +18,6 @@
 
 #include "Common.h"
 #include "Database/DatabaseEnv.h"
-#include "WorldPacket.h"
 #include "WorldSession.h"
 #include "World.h"
 #include "ObjectMgr.h"
@@ -26,7 +25,6 @@
 #include "PlayerDump.h"
 #include "SpellMgr.h"
 #include "Player.h"
-#include "Opcodes.h"
 #include "GameObject.h"
 #include "Chat.h"
 #include "Log.h"
@@ -2384,7 +2382,7 @@ bool ChatHandler::HandleListItemCommand(char* args)
             uint32 owner_acc = fields[4].GetUInt32();
             std::string owner_name = fields[5].GetCppString();
 
-            char const* item_pos = 0;
+            char const* item_pos;
             if (Player::IsEquipmentPos(item_bag, item_slot))
                 item_pos = "[equipped]";
             else if (Player::IsInventoryPos(item_bag, item_slot))
@@ -4080,9 +4078,37 @@ bool ChatHandler::HandleLevelUpCommand(char* args)
         }
     }
 
-    Player* target;
     ObjectGuid target_guid;
     std::string target_name;
+
+    //add pet to levelup command
+    if (m_session)
+    {
+        Creature* creatureTarget = getSelectedCreature();
+        Player* player = m_session->GetPlayer();
+        if (creatureTarget && creatureTarget->IsPet() && creatureTarget->GetOwner() && creatureTarget->GetOwner()->GetTypeId() == TYPEID_PLAYER)
+        {
+            Pet* petTarget = (Pet*)creatureTarget;
+
+            if (petTarget->getPetType() == HUNTER_PET)
+            {
+                uint32 newPetLevel = petTarget->getLevel() + addlevel;
+
+                if (newPetLevel <= player->getLevel())
+                {
+                    petTarget->GivePetLevel(newPetLevel);
+
+                    std::string nameLink = petLink(petTarget->GetName());
+                    PSendSysMessage(LANG_YOU_CHANGE_LVL, nameLink.c_str(), newPetLevel);
+                    return true;
+                }
+            }
+ 
+            return false;
+        }
+    }
+
+    Player* target;
     if (!ExtractPlayerTarget(&nameStr, &target, &target_guid, &target_name))
         return false;
 
@@ -5639,7 +5665,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
 
             case CHASE_MOTION_TYPE:
             {
-                Unit* target = nullptr;
+                Unit* target;
                 if (unit->GetTypeId() == TYPEID_PLAYER)
                     target = static_cast<ChaseMovementGenerator<Player> const*>(*itr)->GetTarget();
                 else
@@ -5655,7 +5681,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
             }
             case FOLLOW_MOTION_TYPE:
             {
-                Unit* target = nullptr;
+                Unit* target;
                 if (unit->GetTypeId() == TYPEID_PLAYER)
                     target = static_cast<FollowMovementGenerator<Player> const*>(*itr)->GetTarget();
                 else
@@ -5732,7 +5758,7 @@ bool ChatHandler::HandleServerPLimitCommand(char* args)
 
     uint32 pLimit = sWorld.GetPlayerAmountLimit();
     AccountTypes allowedAccountType = sWorld.GetPlayerSecurityLimit();
-    char const* secName = "";
+    char const* secName;
     switch (allowedAccountType)
     {
         case SEC_PLAYER:        secName = "Player";        break;

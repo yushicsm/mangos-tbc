@@ -25,10 +25,8 @@
 
 #include "Common.h"
 #include "Timer.h"
-#include "Policies/Singleton.h"
 #include "SharedDefines.h"
 
-#include <map>
 #include <set>
 #include <list>
 #include <deque>
@@ -180,6 +178,7 @@ enum eConfigUInt32Values
     CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE,
     CONFIG_UINT32_GUID_RESERVE_SIZE_GAMEOBJECT,
     CONFIG_UINT32_CREATURE_RESPAWN_AGGRO_DELAY,
+    CONFIG_UINT32_MAX_WHOLIST_RETURNS,
     CONFIG_UINT32_VALUE_COUNT
 };
 
@@ -212,7 +211,9 @@ enum eConfigFloatValues
     CONFIG_FLOAT_RATE_DROP_ITEM_LEGENDARY,
     CONFIG_FLOAT_RATE_DROP_ITEM_ARTIFACT,
     CONFIG_FLOAT_RATE_DROP_ITEM_REFERENCED,
+    CONFIG_FLOAT_RATE_DROP_ITEM_QUEST,
     CONFIG_FLOAT_RATE_DROP_MONEY,
+    CONFIG_FLOAT_RATE_PET_XP_KILL,
     CONFIG_FLOAT_RATE_XP_KILL,
     CONFIG_FLOAT_RATE_XP_QUEST,
     CONFIG_FLOAT_RATE_XP_EXPLORE,
@@ -416,7 +417,7 @@ struct CliCommandHolder
     CommandFinished m_commandFinished;
 
     CliCommandHolder(uint32 accountId, AccountTypes cliAccessLevel, const char* command, Print print, CommandFinished commandFinished)
-        : m_cliAccountId(accountId), m_cliAccessLevel(cliAccessLevel), m_print(print), m_commandFinished(commandFinished), m_command(strlen(command) + 1)
+        : m_cliAccountId(accountId), m_cliAccessLevel(cliAccessLevel), m_command(strlen(command) + 1), m_print(print), m_commandFinished(commandFinished)
     {
         memcpy(&m_command[0], command, m_command.size() - 1);
     }

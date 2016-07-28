@@ -22,7 +22,6 @@
 #include "WorldSession.h"
 #include "Opcodes.h"
 #include "Log.h"
-#include "UpdateMask.h"
 #include "World.h"
 #include "ObjectMgr.h"
 #include "SpellMgr.h"
@@ -36,7 +35,6 @@
 #include "Policies/Singleton.h"
 #include "Totem.h"
 #include "Creature.h"
-#include "Formulas.h"
 #include "BattleGround/BattleGround.h"
 #include "OutdoorPvP/OutdoorPvP.h"
 #include "CreatureAI.h"
@@ -45,6 +43,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
+#include "Language.h"
 #include "MapManager.h"
 #include "LootMgr.h"
 
@@ -1338,8 +1337,9 @@ void Aura::TriggerSpell()
                         triggerTarget->SummonCreature(17870, 0.0f, 0.0f, 0.0f, triggerTarget->GetOrientation(), TEMPSUMMON_DEAD_DESPAWN, 0);
                         return;
                     }
-//                    // Bloodmyst Tesla
-//                    case 31611: break;
+                    case 31611:                             // Bloodmyst Tesla
+                        // no custom effect required; return to avoid spamming with errors
+                        return;
                     case 31944:                             // Doomfire
                     {
                         int32 damage = m_modifier.m_amount * ((GetAuraDuration() + m_modifier.periodictime) / GetAuraMaxDuration());
@@ -1931,8 +1931,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     case 28834:                             // Mark of Rivendare
                     case 28835:                             // Mark of Zeliek
                     {
-                        int32 damage = 0;
-
+                        int32 damage;
                         switch (GetStackAmount())
                         {
                             case 1:
@@ -3321,6 +3320,15 @@ void Aura::HandleModPossess(bool apply, bool Real)
 
     if (apply)
     {
+        if (caster->GetTypeId() == TYPEID_PLAYER)
+        {
+            //remove any existing charm just in case
+            caster->Uncharm();
+
+            //pets should be removed when possesing a target if somehow check was bypassed
+            ((Player*)caster)->UnsummonPetIfAny();
+        }
+         
         target->addUnitState(UNIT_STAT_CONTROLLED);
 
         target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
@@ -3423,6 +3431,15 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
 
     if (apply)
     {
+        if (caster->GetTypeId() == TYPEID_PLAYER)
+        {
+            //remove any existing charm just in case
+            caster->Uncharm();
+
+            //pets should be removed when possesing a target if somehow check was bypassed
+            ((Player*)caster)->UnsummonPetIfAny();
+        }
+
         pet->addUnitState(UNIT_STAT_CONTROLLED);
 
         // target should became visible at SetView call(if not visible before):
@@ -3488,6 +3505,15 @@ void Aura::HandleModCharm(bool apply, bool Real)
 
     if (apply)
     {
+        if (caster->GetTypeId() == TYPEID_PLAYER)
+        {
+            //remove any existing charm just in case
+            caster->Uncharm();
+ 
+            //pets should be removed when possesing a target if somehow check was bypassed
+            ((Player*)caster)->UnsummonPetIfAny();
+        }
+
         // is it really need after spell check checks?
         target->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM, GetHolder());
         target->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS, GetHolder());
@@ -3729,8 +3755,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
                 return;
 
-            uint32 spell_id = 0;
-
+            uint32 spell_id;
             switch (GetId())
             {
                 case 19386: spell_id = 24131; break;
@@ -3853,8 +3878,14 @@ void Aura::HandleInvisibility(bool apply, bool Real)
 
         if (Real && target->GetTypeId() == TYPEID_PLAYER)
         {
-            // apply glow vision
-            target->SetByteFlag(PLAYER_FIELD_BYTES2, 1, PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW);
+            if (Player* player = (Player*)target)
+            {
+                if (player->GetMover() == nullptr) // check if the player doesnt have a mover, when player is hidden during MC of creature
+                {
+                    // apply glow vision
+                    target->SetByteFlag(PLAYER_FIELD_BYTES2, 1, PLAYER_FIELD_BYTE2_INVISIBILITY_GLOW);
+                }
+            }
         }
 
         // apply only if not in GM invisibility and not stealth
@@ -5792,7 +5823,13 @@ void Aura::HandleSpiritOfRedemption(bool apply, bool Real)
                 target->SetStandState(UNIT_STAND_STATE_STAND);
         }
 
-        target->SetHealth(1);
+        // interrupt casting when entering Spirit of Redemption
+        if (target->IsNonMeleeSpellCasted(false))
+            target->InterruptNonMeleeSpells(false);
+ 
+        // set health and mana to maximum
+        target->SetHealth(target->GetMaxHealth());
+        target->SetPower(POWER_MANA, target->GetMaxPower(POWER_MANA));
     }
     // die at aura end
     else
@@ -5873,7 +5910,7 @@ void Aura::PeriodicTick()
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             // some auras remove at specific health level or more
@@ -6003,7 +6040,7 @@ void Aura::PeriodicTick()
                 return;
 
             // Check for immune
-            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             uint32 absorb = 0;
@@ -6170,7 +6207,7 @@ void Aura::PeriodicTick()
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             // ignore non positive values (can be result apply spellmods to aura damage
@@ -6269,8 +6306,8 @@ void Aura::PeriodicTick()
             if (target->GetMaxPower(power) == 0)
                 break;
 
-            SpellPeriodicAuraLogInfo pInfo(this, pdamage, 0, 0, 0.0f);
-            target->SendPeriodicAuraLog(&pInfo);
+            SpellPeriodicAuraLogInfo info(this, pdamage, 0, 0, 0.0f);
+            target->SendPeriodicAuraLog(&info);
 
             int32 gain = target->ModifyPower(power, pdamage);
 
@@ -6315,7 +6352,7 @@ void Aura::PeriodicTick()
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             int32 pdamage = m_modifier.m_amount > 0 ? m_modifier.m_amount : 0;
