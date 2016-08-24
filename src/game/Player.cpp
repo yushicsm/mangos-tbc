@@ -681,7 +681,8 @@ bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 c
 
     InitDisplayIds();                                       // model, scale and model data
 
-    SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_UNK3 | UNIT_BYTE2_FLAG_UNK5);
+    SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SUPPORTABLE | UNIT_BYTE2_FLAG_UNK5);
+
     SetUInt32Value(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE);
     SetFloatValue(UNIT_MOD_CAST_SPEED, 1.0f);               // fix cast time showed in spell tooltip on client
 
@@ -2450,6 +2451,9 @@ void Player::GiveLevel(uint32 level)
 
     if (MailLevelReward const* mailReward = sObjectMgr.GetMailLevelReward(level, getRaceMask()))
         MailDraft(mailReward->mailTemplateId).SendMailTo(this, MailSender(MAIL_CREATURE, mailReward->senderEntry));
+
+    // resend quests status directly
+    SendQuestGiverStatusMultiple();
 }
 
 void Player::UpdateFreeTalentPoints(bool resetIfNeed)
@@ -5999,6 +6003,8 @@ void Player::CheckAreaExploreAndOutdoor()
             SpellEntry const* spellInfo = sSpellStore.LookupEntry(itr->first);
             if (!spellInfo || !IsNeedCastSpellAtOutdoor(spellInfo) || HasAura(itr->first))
                 continue;
+            if ((spellInfo->Stances || spellInfo->StancesNot) && !IsNeedCastSpellAtFormApply(spellInfo, GetShapeshiftForm()))
+                continue;
             CastSpell(this, itr->first, true, nullptr);
         }
     }
@@ -7651,6 +7657,9 @@ void Player::SendInitWorldStates(uint32 zoneid, uint32 areaid)
     data << uint32(areaid);                                 // area id, new 2.1.0
     size_t count_pos = data.wpos();
     data << uint16(0);                                      // count of uint64 blocks, placeholder
+
+    // Current arena season
+    FillInitialWorldState(data, count, 0xC77, sWorld.getConfig(CONFIG_UINT32_ARENA_SEASON_ID));
 
     switch (zoneid)
     {
@@ -12886,6 +12895,9 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     saBounds = sSpellMgr.GetSpellAreaForAreaMapBounds(0);
     for (SpellAreaForAreaMap::const_iterator itr = saBounds.first; itr != saBounds.second; ++itr)
         itr->second->ApplyOrRemoveSpellIfCan(this, zone, area, false);
+
+    // resend quests status directly
+    SendQuestGiverStatusMultiple();
 }
 
 void Player::FailQuest(uint32 questId)
@@ -14007,6 +14019,60 @@ void Player::SendQuestUpdateAddCreatureOrGo(Quest const* pQuest, ObjectGuid guid
         SetQuestSlotCounter(log_slot, creatureOrGO_idx, count);
 }
 
+void Player::SendQuestGiverStatusMultiple()
+{
+    uint32 count = 0;
+
+    WorldPacket data(SMSG_QUESTGIVER_STATUS_MULTIPLE, 4);
+    data << uint32(count);                                  // placeholder
+
+    for (GuidSet::const_iterator itr = m_clientGUIDs.begin(); itr != m_clientGUIDs.end(); ++itr)
+    {
+        if (itr->IsAnyTypeCreature())
+        {
+            // need also pet quests case support
+            Creature* questgiver = GetMap()->GetAnyTypeCreature(*itr);
+
+            if (!questgiver || questgiver->IsHostileTo(this))
+                continue;
+
+            if (!questgiver->HasFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER))
+                continue;
+
+            uint8 dialogStatus = sScriptMgr.GetDialogStatus(this, questgiver);
+
+            if (dialogStatus == DIALOG_STATUS_UNDEFINED)
+                dialogStatus = GetSession()->getDialogStatus(this, questgiver, DIALOG_STATUS_NONE);
+
+            data << questgiver->GetObjectGuid();
+            data << uint8(dialogStatus);
+            ++count;
+        }
+        else if (itr->IsGameObject())
+        {
+            GameObject* questgiver = GetMap()->GetGameObject(*itr);
+
+            if (!questgiver)
+                continue;
+
+            if (questgiver->GetGoType() != GAMEOBJECT_TYPE_QUESTGIVER)
+                continue;
+
+            uint8 dialogStatus = sScriptMgr.GetDialogStatus(this, questgiver);
+
+            if (dialogStatus == DIALOG_STATUS_UNDEFINED)
+                dialogStatus = GetSession()->getDialogStatus(this, questgiver, DIALOG_STATUS_NONE);
+
+            data << questgiver->GetObjectGuid();
+            data << uint8(dialogStatus);
+            ++count;
+        }
+    }
+
+    data.put<uint32>(0, count);                             // write real count
+    GetSession()->SendPacket(&data);
+}
+
 /*********************************************************/
 /***                   LOAD SYSTEM                     ***/
 /*********************************************************/
@@ -14175,7 +14241,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
     uint8 gender = fields[5].GetUInt8() & 0x01;             // allowed only 1 bit values male/female cases (for fit drunk gender part)
     SetByteValue(UNIT_FIELD_BYTES_0, 2, gender);            // gender
 
-    SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_UNK3 | UNIT_BYTE2_FLAG_UNK5);
+    SetByteValue(UNIT_FIELD_BYTES_2, 1, UNIT_BYTE2_FLAG_SUPPORTABLE | UNIT_BYTE2_FLAG_UNK5);
 
     SetUInt32Value(UNIT_FIELD_LEVEL, fields[6].GetUInt8());
     SetUInt32Value(PLAYER_XP, fields[7].GetUInt32());
@@ -15338,6 +15404,7 @@ void Player::_LoadGroup(QueryResult* result)
             }
         }
     }
+    UpdateGroupLeaderFlag();
 }
 
 void Player::_LoadBoundInstances(QueryResult* result)
@@ -16714,13 +16781,13 @@ void Player::Whisper(const std::string& text, uint32 language, ObjectGuid receiv
     ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, text.c_str(), Language(language), GetChatTag(), GetObjectGuid(), GetName());
     rPlayer->GetSession()->SendPacket(&data);
 
-    // not send confirmation for addon messages
-    if (language != LANG_ADDON)
-    {
-        data.clear();
-        ChatHandler::BuildChatPacket(data, CHAT_MSG_REPLY, text.c_str(), Language(language), CHAT_TAG_NONE, rPlayer->GetObjectGuid());
-        GetSession()->SendPacket(&data);
-    }
+    // do not send confirmations, afk, dnd or system notifications for addon messages
+    if (language == LANG_ADDON)
+        return;
+
+    data.clear();
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_REPLY, text.c_str(), Language(language), CHAT_TAG_NONE, rPlayer->GetObjectGuid());
+    GetSession()->SendPacket(&data);
 
     if (!isAcceptWhispers())
     {
@@ -16729,10 +16796,13 @@ void Player::Whisper(const std::string& text, uint32 language, ObjectGuid receiv
     }
 
     // announce afk or dnd message
-    if (rPlayer->isAFK())
-        ChatHandler(this).PSendSysMessage(LANG_PLAYER_AFK, rPlayer->GetName(), rPlayer->autoReplyMsg.c_str());
-    else if (rPlayer->isDND())
-        ChatHandler(this).PSendSysMessage(LANG_PLAYER_DND, rPlayer->GetName(), rPlayer->autoReplyMsg.c_str());
+    if (rPlayer->isAFK() || rPlayer->isDND())
+    {
+        const ChatMsg msgtype = rPlayer->isAFK() ? CHAT_MSG_AFK : CHAT_MSG_DND;
+        data.clear();
+        ChatHandler::BuildChatPacket(data, msgtype, rPlayer->autoReplyMsg.c_str(), LANG_UNIVERSAL, CHAT_TAG_NONE, rPlayer->GetObjectGuid());
+        GetSession()->SendPacket(&data);
+    }
 }
 
 void Player::PetSpellInitialize()
@@ -17725,6 +17795,19 @@ uint32 Player::GetMaxPersonalArenaRatingRequirement()
     return max_personal_rating;
 }
 
+uint8 Player::GetHighestPvPRankIndex()
+{
+    uint8 index = 0;
+    for (uint8 rank = 1; rank <= 28; ++rank)
+    {
+        if (HasTitle(rank))
+             // Old rank index starts at 5, values below 5 are discontinued negative ranks
+            index = (rank <= 14) ? (rank + 4) : (rank - 10);
+    }
+
+    return index;
+}
+
 void Player::UpdateHomebindTime(uint32 time)
 {
     // GMs never get homebind timer online
@@ -18411,6 +18494,11 @@ void Player::SendInitialPacketsBeforeAddToMap()
 
     // tutorial stuff
     GetSession()->SendTutorialsData();
+
+    data.Initialize(SMSG_INSTANCE_DIFFICULTY, 4 + 4);
+    data << uint32(GetMap()->GetDifficulty());
+    data << uint32(0);
+    GetSession()->SendPacket(&data);
 
     SendInitialSpells();
 
@@ -19525,6 +19613,18 @@ PartyResult Player::CanUninviteFromGroup() const
         return ERR_INVITE_RESTRICTED;
 
     return ERR_PARTY_RESULT_OK;
+}
+
+void Player::UpdateGroupLeaderFlag(const bool remove /*= false*/)
+{
+    const Group* group = GetGroup();
+    if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER))
+    {
+        if (remove || !group || group->GetLeaderGuid() != GetObjectGuid())
+            RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER);
+    }
+    else if (!remove && group && group->GetLeaderGuid() == GetObjectGuid())
+        SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER);
 }
 
 void Player::SetBattleGroundRaid(Group* group, int8 subgroup)
