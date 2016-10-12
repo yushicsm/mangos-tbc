@@ -525,7 +525,7 @@ void PlayerbotAI::AutoUpgradeEquipment() // test for autoequip
             }
         }
 
-        if (pItem->GetProto()->Flags & ITEM_FLAG_LOOTABLE && spellId == 0)
+        if (pItem->GetProto()->Flags & ITEM_FLAG_HAS_LOOT && spellId == 0)
         {
             std::string oops = "Oh... Look! Theres something inside!!!";
             m_bot->Say(oops, LANG_UNIVERSAL);
@@ -6341,7 +6341,7 @@ void PlayerbotAI::UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID)
         }
     }
 
-    if (item->GetProto()->Flags & ITEM_FLAG_LOOTABLE && spellId == 0)
+    if (item->GetProto()->Flags & ITEM_FLAG_HAS_LOOT && spellId == 0)
     {
         // Open quest item in inventory, containing related items (e.g Gnarlpine necklace, containing Tallonkai's Jewel)
         WorldPacket* const packet = new WorldPacket(CMSG_OPEN_ITEM, 2);
