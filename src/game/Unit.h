@@ -427,7 +427,7 @@ enum UnitState
                                 UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING,
 
     // AI disabled by some reason
-    UNIT_STAT_LOST_CONTROL    = UNIT_STAT_FLEEING | UNIT_STAT_CONTROLLED,
+    UNIT_STAT_LOST_CONTROL    = UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING | UNIT_STAT_CONTROLLED,
 
     // above 2 state cases
     UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL  = UNIT_STAT_CAN_NOT_REACT | UNIT_STAT_LOST_CONTROL,
@@ -621,9 +621,9 @@ enum MovementFlags
 // flags that use in movement check for example at spell casting
 MovementFlags const movementFlagsMask = MovementFlags(
         MOVEFLAG_FORWARD | MOVEFLAG_BACKWARD  | MOVEFLAG_STRAFE_LEFT | MOVEFLAG_STRAFE_RIGHT |
-        MOVEFLAG_PITCH_UP | MOVEFLAG_PITCH_DOWN | MOVEFLAG_ROOT        |
-        MOVEFLAG_FALLING | MOVEFLAG_FALLINGFAR | MOVEFLAG_ASCENDING   |
-        MOVEFLAG_FLYING  | MOVEFLAG_SPLINE_ELEVATION
+        MOVEFLAG_PITCH_UP | MOVEFLAG_PITCH_DOWN | MOVEFLAG_FALLING |
+        MOVEFLAG_FALLINGFAR | MOVEFLAG_ASCENDING | MOVEFLAG_FLYING |
+        MOVEFLAG_SPLINE_ELEVATION
                                         );
 
 MovementFlags const movementOrTurningFlagsMask = MovementFlags(
@@ -996,7 +996,7 @@ struct CharmInfo
         void InitEmptyActionBar();
 
         // return true if successful
-        bool AddSpellToActionBar(uint32 spellid, ActiveStates newstate = ACT_DECIDE);
+        bool AddSpellToActionBar(uint32 spellId, ActiveStates newstate = ACT_DECIDE);
         bool RemoveSpellFromActionBar(uint32 spell_id);
         void LoadPetActionBar(const std::string& data);
         void BuildActionBar(WorldPacket* data);
@@ -1065,6 +1065,18 @@ enum PowerDefaults
 };
 
 struct SpellProcEventEntry;                                 // used only privately
+
+
+struct CombatData
+{
+public:
+    CombatData(Unit* owner) : threatManager(ThreatManager(owner)), hostileRefManager(HostileRefManager(owner)) {};
+
+    // Manage all Units threatening us
+    ThreatManager threatManager;
+    // Manage all Units that are threatened by us
+    HostileRefManager hostileRefManager;
+};
 
 class MANGOS_DLL_SPEC Unit : public WorldObject
 {
@@ -1261,7 +1273,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
          * @return false if we weren't attacking already, true otherwise
          * \see Unit::m_attacking
          */
-        void AttackStop(bool targetSwitch = false, bool includingCast = false);
+        bool AttackStop(bool targetSwitch = false, bool includingCast = false);
         /**
          * Removes all attackers from the Unit::m_attackers set and logs it if someone that
          * wasn't attacking it was in the list. Does this check by checking if Unit::AttackStop()
@@ -1618,6 +1630,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void RemoveAurasByCasterSpell(uint32 spellId, ObjectGuid casterGuid);
         void RemoveAurasDueToSpellBySteal(uint32 spellId, ObjectGuid casterGuid, Unit* stealer);
         void RemoveAurasDueToSpellByCancel(uint32 spellId);
+        void RemoveAurasTriggeredBySpell(uint32 spellId, ObjectGuid casterGuid = ObjectGuid());
 
         // removing unknown aura stacks by diff reasons and selections
         void RemoveNotOwnTrackedTargetAuras();
@@ -1773,11 +1786,11 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void TauntFadeOut(Unit* taunter);
         void FixateTarget(Unit* pVictim);
         ObjectGuid GetFixateTargetGuid() const { return m_fixateTargetGuid; }
-        ThreatManager& getThreatManager() { return m_ThreatManager; }
-        ThreatManager const& getThreatManager() const { return m_ThreatManager; }
-        void addHatedBy(HostileReference* pHostileReference) { m_HostileRefManager.insertFirst(pHostileReference); };
+        ThreatManager& getThreatManager() { return m_combatData->threatManager; }
+        ThreatManager const& getThreatManager() const { return m_combatData->threatManager; }
+        void addHatedBy(HostileReference* pHostileReference) { m_combatData->hostileRefManager.insertFirst(pHostileReference); };
         void removeHatedBy(HostileReference* /*pHostileReference*/) { /* nothing to do yet */ }
-        HostileRefManager& getHostileRefManager() { return m_HostileRefManager; }
+        HostileRefManager& getHostileRefManager() { return m_combatData->hostileRefManager; }
 
         Aura* GetAura(uint32 spellId, SpellEffectIndex effindex);
         Aura* GetAura(AuraType type, SpellFamily family, uint64 familyFlag, ObjectGuid casterGuid = ObjectGuid());
@@ -1900,7 +1913,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         virtual bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const;
 
         uint32 CalcArmorReducedDamage(Unit* pVictim, const uint32 damage);
-        void CalculateDamageAbsorbAndResist(Unit* pCaster, SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32* absorb, uint32* resist, bool canReflect = false);
+        void CalculateDamageAbsorbAndResist(Unit* pCaster, SpellSchoolMask schoolMask, DamageEffectType damagetype, const uint32 damage, uint32* absorb, uint32* resist, bool canReflect = false, bool ignoreResists = false);
         void CalculateAbsorbResistBlock(Unit* pCaster, SpellNonMeleeDamage* damageInfo, SpellEntry const* spellProto, WeaponAttackType attType = BASE_ATTACK);
 
         void  UpdateSpeed(UnitMoveType mtype, bool forced, float ratio = 1.0f);
@@ -1928,8 +1941,24 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
 
+        ///----------Various crowd control methods-----------------
+        bool IsImmobilized() const { return hasUnitState(UNIT_STAT_ROOT | UNIT_STAT_STUNNED); }
+        void SetImmobilizedState(bool apply, bool stun = false);
+
+        // These getters operate on unit flags set by IncapacitatedState and are meant for formal usage in conjunction with spell effects only
+        // For actual internal movement states use UnitState flags
+        // TODO: The UnitState thing needs to be rewriten at some point, this kind of duality is bad
+        bool IsFleeing() const { return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING); }
+        bool IsConfused() const { return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED); }
+        bool IsStunned() const { return HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED); }
+        bool IsIncapacitated() const { return (IsFleeing() || IsConfused() || IsStunned()); }
+
         void SetFeared(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint32 time = 0);
         void SetConfused(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0);
+        void SetStunned(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0);
+        void SetIncapacitatedState(bool apply, uint32 state = 0, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint32 time = 0);
+        ///----------End of crowd control methods----------
+
         void SetFeignDeath(bool apply, ObjectGuid casterGuid = ObjectGuid());
 
         void AddComboPointHolder(uint32 lowguid) { m_ComboPointHolders.insert(lowguid); }
@@ -1972,6 +2001,17 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         virtual bool CanSwim() const = 0;
         virtual bool CanFly() const = 0;
 
+        // Take possession of an unit (pet, creature, ...)
+        bool TakePossessOf(Unit* possessed);
+
+        // Take possession of a new spawned unit
+        Unit* TakePossessOf(SpellEntry const* spellEntry, SummonPropertiesEntry const* summonProp, uint32 effIdx, float x, float y, float z, float ang);
+
+        // Reset control to player
+        void ResetControlState(bool attackCharmer = true);
+
+        CombatData* m_combatData;
+
     protected:
         explicit Unit();
 
@@ -1983,7 +2023,6 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         float m_createStats[MAX_STATS];
 
-        AttackerSet m_attackers;
         Unit* m_attacking;
 
         DeathState m_deathState;
@@ -2040,6 +2079,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         uint32 m_state;                                     // Even derived shouldn't modify
         uint32 m_CombatTimer;
 
+        AttackerSet m_attackers;                            // Used to help know who is currently attacking this unit
         Spell* m_currentSpells[CURRENT_MAX_SPELL];
         uint32 m_castCounter;                               // count casts chain of triggered spells for prevent infinity cast crashes
 
@@ -2049,10 +2089,6 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         ShortTimeTracker m_movesplineTimer;
 
         Diminishing m_Diminishing;
-        // Manage all Units threatening us
-        ThreatManager m_ThreatManager;
-        // Manage all Units that are threatened by us
-        HostileRefManager m_HostileRefManager;
 
         FollowerRefManager m_FollowingRefManager;
 

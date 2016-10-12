@@ -2958,10 +2958,39 @@ bool Player::addSpell(uint32 spell_id, bool active, bool learning, bool dependen
         // non talent spell: learn low ranks (recursive call)
         else if (uint32 prev_spell = sSpellMgr.GetPrevSpellInChain(spell_id))
         {
-            if (!IsInWorld() || disabled)                   // at spells loading, no output, but allow save
-                addSpell(prev_spell, active, true, true, disabled);
-            else                                            // at normal learning
-                learnSpell(prev_spell, true);
+            // Check if a spell is learned by a talent first
+            bool talent = false;
+            for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
+            {
+                TalentEntry const* talentInfo = sTalentStore.LookupEntry(i);
+                if (!talentInfo)
+                    continue;
+                TalentTabEntry const* talentTabInfo = sTalentTabStore.LookupEntry(talentInfo->TalentTab);
+                if (!talentTabInfo || !(getClassMask() & talentTabInfo->ClassMask))
+                    continue;
+                uint32 parent = 0;
+                for (uint32 rank = 0; rank < MAX_TALENT_RANK; ++rank)
+                {
+                    if (talentInfo->RankID[rank] && sSpellMgr.IsSpellLearnToSpell(talentInfo->RankID[rank], prev_spell))
+                    {
+                        parent = talentInfo->RankID[rank];
+                        break;
+                    }
+                }
+                if (parent)
+                {
+                    talent = !HasSpell(parent);
+                    break;
+                }
+            }
+            // We do not learn previous rank if its owned by a talent we don't know
+            if (!talent)
+            {
+                if (!IsInWorld() || disabled)                   // at spells loading, no output, but allow save
+                    addSpell(prev_spell, active, true, true, disabled);
+                else                                            // at normal learning
+                    learnSpell(prev_spell, true);
+            }
         }
 
         PlayerSpell newspell;
@@ -3142,7 +3171,7 @@ bool Player::IsNeedCastPassiveLikeSpellAtLearn(SpellEntry const* spellInfo) cons
 {
     ShapeshiftForm form = GetShapeshiftForm();
 
-    if (IsNeedCastSpellAtFormApply(spellInfo, form))        // SPELL_ATTR_PASSIVE | SPELL_ATTR_UNK7 spells
+    if (IsNeedCastSpellAtFormApply(spellInfo, form))        // SPELL_ATTR_PASSIVE | SPELL_ATTR_HIDDEN_CLIENTSIDE spells
         return true;                                        // all stance req. cases, not have auarastate cases
 
     if (!spellInfo->HasAttribute(SPELL_ATTR_PASSIVE))
@@ -3192,6 +3221,11 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bo
     if (itr == m_spells.end())
         return;
 
+    // Always try to remove all dependent spells if present (needed to reset some talents properly)
+    SpellLearnSpellMapBounds spell_bounds = sSpellMgr.GetSpellLearnSpellMapBounds(spell_id);
+    for (SpellLearnSpellMap::const_iterator child_itr = spell_bounds.first; child_itr != spell_bounds.second; ++child_itr)
+        removeSpell(child_itr->second.spell, !IsPassiveSpell(child_itr->second.spell), learn_low_rank);
+
     PlayerSpell& playerSpell = itr->second;
     if (playerSpell.state == PLAYERSPELL_REMOVED || (disabled && playerSpell.disabled))
         return;
@@ -3200,7 +3234,7 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bo
     SpellChainMapNext const& nextMap = sSpellMgr.GetSpellChainNext();
     for (SpellChainMapNext::const_iterator itr2 = nextMap.lower_bound(spell_id); itr2 != nextMap.upper_bound(spell_id); ++itr2)
         if (HasSpell(itr2->second) && !GetTalentSpellPos(itr2->second))
-            removeSpell(itr2->second, disabled, false);
+            removeSpell(itr2->second, !IsPassiveSpell(itr2->second), false);
 
     // re-search, it can be corrupted in prev loop
     itr = m_spells.find(spell_id);
@@ -3224,7 +3258,8 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bo
             playerSpell.state = PLAYERSPELL_REMOVED;
     }
 
-    RemoveAurasDueToSpell(spell_id);
+    RemoveAurasByCasterSpell(spell_id, GetObjectGuid());
+    RemoveAurasTriggeredBySpell(spell_id, GetObjectGuid());
 
     // remove pet auras
     if (PetAura const* petSpell = sSpellMgr.GetPetAura(spell_id))
@@ -3315,12 +3350,6 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bo
             }
         }
     }
-
-    // remove dependent spells
-    SpellLearnSpellMapBounds spell_bounds = sSpellMgr.GetSpellLearnSpellMapBounds(spell_id);
-
-    for (SpellLearnSpellMap::const_iterator itr2 = spell_bounds.first; itr2 != spell_bounds.second; ++itr2)
-        removeSpell(itr2->second.spell, disabled);
 
     // activate lesser rank in spellbook/action bar, and cast it if need
     bool prev_activate = false;
@@ -3549,11 +3578,8 @@ bool Player::resetTalents(bool no_cost)
     if (HasAtLoginFlag(AT_LOGIN_RESET_TALENTS))
         RemoveAtLoginFlag(AT_LOGIN_RESET_TALENTS, true);
 
-    if (m_usedTalentCount == 0)
-    {
-        UpdateFreeTalentPoints(false);                      // for fix if need counter
-        return false;
-    }
+    if (!m_usedTalentCount)
+        no_cost = true;
 
     uint32 cost = 0;
 
@@ -7366,7 +7392,7 @@ void Player::CastItemCombatSpell(Unit* Target, WeaponAttackType attType)
 
             if (roll_chance_f(chance))
             {
-                if (IsPositiveSpell(spellInfo->Id))
+                if (IsPositiveSpell(spellInfo->Id, this, Target))
                     CastSpell(this, spellInfo->Id, true, item);
                 else
                     CastSpell(Target, spellInfo->Id, true, item);
@@ -12873,11 +12899,35 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     if (!handled && pQuest->GetQuestCompleteScript() != 0)
         GetMap()->ScriptsStart(sQuestEndScripts, pQuest->GetQuestCompleteScript(), questGiver, this, Map::SCRIPT_EXEC_PARAM_UNIQUE_BY_SOURCE);
 
-    // cast spells after mark quest complete (some spells have quest completed state reqyurements in spell_area data)
-    if (pQuest->GetRewSpellCast() > 0)
-        CastSpell(this, pQuest->GetRewSpellCast(), true);
-    else if (pQuest->GetRewSpell() > 0)
-        CastSpell(this, pQuest->GetRewSpell(), true);
+    // Find spell cast on spell reward if any, then find the appropriate caster and cast it
+    uint32 spellId = pQuest->GetRewSpellCast();
+    if (!spellId)
+        spellId = pQuest->GetRewSpell();
+
+    if (spellId)
+    {
+        if (SpellEntry const* spellProto = sSpellStore.LookupEntry(spellId))
+        {
+            Unit* caster = this;
+
+            if (questGiver->GetTypeId() == TYPEID_UNIT)
+            {
+                for (uint8 i = 0; i < MAX_EFFECT_INDEX; ++i)
+                {
+                    if (spellProto->Effect[i] == SPELL_EFFECT_LEARN_SPELL ||
+                        spellProto->Effect[i] == SPELL_EFFECT_CREATE_ITEM ||
+                        spellProto->EffectImplicitTargetA[i] == TARGET_DUELVSPLAYER ||
+                        spellProto->EffectImplicitTargetA[i] == TARGET_SINGLE_FRIEND)
+                    {
+                        caster = (Unit*)questGiver;
+                        break;
+                    }
+                }
+            }
+
+            caster->CastSpell(this, spellProto, true);
+        }
+    }
 
     // remove auras from spells with quest reward state limitations
     // Some spells applied at quest reward
@@ -18554,6 +18604,9 @@ void Player::SendInitialPacketsAfterAddToMap()
     if (HasAuraType(SPELL_AURA_MOD_STUN) || HasAuraType(SPELL_AURA_MOD_ROOT))
         SetRoot(true);
 
+    if (HasAuraType(SPELL_AURA_GHOST) || HasAuraType(SPELL_AURA_WATER_WALK))
+        SetWaterWalk(true);
+
     SendEnchantmentDurations();                             // must be after add to map
     SendItemDurations();                                    // must be after add to map
 }
@@ -18649,7 +18702,7 @@ void Player::SendInstanceResetWarning(uint32 mapid, uint32 time)
 
 void Player::ApplyEquipCooldown(Item* pItem)
 {
-    if (pItem->GetProto()->Flags & ITEM_FLAG_NO_EQUIP_COOLDOWN)
+    if (pItem->GetProto()->Flags & ITEM_FLAG_NO_EQUIPCOOLDOWN)
         return;
 
     for (int i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
@@ -19419,6 +19472,14 @@ void Player::ResurectUsingRequestData()
     SpawnCorpseBones();
 }
 
+bool Player::IsClientControl(Unit* target) const
+{
+    return (target && !target->IsFleeing() && !target->IsConfused() && !target->IsTaxiFlying() &&
+            (target->GetTypeId() != TYPEID_PLAYER ||
+            !((Player*)target)->InBattleGround() || ((Player*)target)->GetBattleGround()->GetStatus() != STATUS_WAIT_LEAVE) &&
+            target->GetCharmerOrOwnerOrOwnGuid() == GetObjectGuid());
+}
+
 void Player::SetClientControl(Unit* target, uint8 allowMove)
 {
     WorldPacket data(SMSG_CLIENT_CONTROL_UPDATE, target->GetPackGUID().size() + 1);
@@ -19434,14 +19495,13 @@ void Player::Uncharm()
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM);
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS_PET);
-        if (charm == GetMover())
-        {
-            SetMover(nullptr);
-            GetCamera().ResetView();
-            RemoveSpellsCausingAura(SPELL_AURA_MOD_INVISIBILITY);
-            SetCharm(nullptr);
-            SetClientControl(this, 1);
-        }
+    }
+
+    if (Unit* charm = GetCharm())
+    {
+        // try remove charm by spellid
+        if (uint32 spellid = charm->GetUInt32Value(UNIT_CREATED_BY_SPELL))
+            RemoveAurasDueToSpell(spellid);
     }
 }
 
@@ -20034,7 +20094,7 @@ InventoryResult Player::CanEquipUniqueItem(Item* pItem, uint8 eslot) const
 InventoryResult Player::CanEquipUniqueItem(ItemPrototype const* itemProto, uint8 except_slot) const
 {
     // check unique-equipped on item
-    if (itemProto->Flags & ITEM_FLAG_UNIQUE_EQUIPPED)
+    if (itemProto->Flags & ITEM_FLAG_UNIQUE_EQUIPPABLE)
     {
         // there is an equip limit on this item
         if (HasItemOrGemWithIdEquipped(itemProto->ItemId, 1, except_slot))
