@@ -43,6 +43,7 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
+#include "DBCStores.h"
 
 #include "ItemEnchantmentMgr.h"
 #include "LootMgr.h"
@@ -1821,6 +1822,15 @@ void ObjectMgr::LoadItemPrototypes()
             continue;
         }
 
+        for (uint32 k = 0; k < MAX_ITEM_PROTO_SPELLS; k++)
+            if (proto->Spells[k].SpellCategory && proto->Spells[k].SpellId)
+            {
+                if (SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(proto->Spells[k].SpellId))
+                    sItemSpellCategoryStore[proto->Spells[k].SpellCategory].insert(ItemCategorySpellPair(proto->Spells[k].SpellId, i));
+                else
+                    sLog.outErrorDb("Item (Entry: %u) not correct %u spell id, must exist in spell table.", i, proto->Spells[k].SpellId);
+            }
+
         if (dbcitem)
         {
             if (proto->InventoryType != dbcitem->InventoryType)
@@ -3329,7 +3339,7 @@ void ObjectMgr::LoadGroups()
                  // 6
                  "(SELECT COUNT(*) FROM character_instance WHERE guid = group_instance.leaderGuid AND instance = group_instance.instance AND permanent = 1 LIMIT 1), "
                  // 7
-                 " groups.groupId "
+                 " groups.groupId, instance.encountersMask "
                  "FROM group_instance LEFT JOIN instance ON instance = id LEFT JOIN groups ON groups.leaderGUID = group_instance.leaderGUID ORDER BY leaderGuid"
              );
 
@@ -3378,7 +3388,7 @@ void ObjectMgr::LoadGroups()
             else
                 diff = Difficulty(tempDiff);
 
-            DungeonPersistentState* state = (DungeonPersistentState*)sMapPersistentStateMgr.AddPersistentState(mapEntry, fields[2].GetUInt32(), diff, (time_t)fields[5].GetUInt64(), (fields[6].GetUInt32() == 0), true);
+            DungeonPersistentState* state = (DungeonPersistentState*)sMapPersistentStateMgr.AddPersistentState(mapEntry, fields[2].GetUInt32(), Difficulty(diff), (time_t)fields[5].GetUInt64(), (fields[6].GetUInt32() == 0), true, true, fields[8].GetUInt32());
             group->BindToInstance(state, fields[3].GetBool(), true);
         }
         while (result->NextRow());
@@ -3594,13 +3604,6 @@ void ObjectMgr::LoadQuests()
             }
         }
         // else Skill quests can have 0 skill level, this is ok
-
-		if (qinfo->RequiredCondition)
-		{
-			const PlayerCondition* condition = sConditionStorage.LookupEntry<PlayerCondition>(qinfo->RequiredCondition);
-			if (!condition) // condition does not exist for some reason
-				sLog.outErrorDb("Quest %u has `RequiredCondition` = %u but does not exist.", qinfo->GetQuestId(), qinfo->RequiredCondition);
-		}
 
         if (qinfo->RepObjectiveFaction && !sFactionStore.LookupEntry(qinfo->RepObjectiveFaction))
         {
@@ -4487,6 +4490,76 @@ void ObjectMgr::LoadPageTextLocales()
     sLog.outString();
 }
 
+void ObjectMgr::LoadInstanceEncounters()
+{
+    m_DungeonEncounters.clear();         // need for reload case
+
+    QueryResult* result = WorldDatabase.Query("SELECT entry, creditType, creditEntry, lastEncounterDungeon FROM instance_encounters");
+
+    if (!result)
+    {
+        BarGoLink bar(1);
+        bar.step();
+        sLog.outString(">> Loaded 0 Instance Encounters. DB table `instance_encounters` is empty.");
+        sLog.outString();
+        return;
+    }
+
+    BarGoLink bar(result->GetRowCount());
+
+    do
+    {
+        Field* fields = result->Fetch();
+        bar.step();
+
+        uint32 entry = fields[0].GetUInt32();
+        DungeonEncounterEntry const* dungeonEncounter = sDungeonEncounterStore.LookupEntry<DungeonEncounterEntry>(entry);
+
+        if (!dungeonEncounter)
+        {
+            sLog.outErrorDb("Table `instance_encounters` has an invalid encounter id %u, skipped!", entry);
+            continue;
+        }
+
+        uint8 creditType = fields[1].GetUInt8();
+        uint32 creditEntry = fields[2].GetUInt32();
+        switch (creditType)
+        {
+            case ENCOUNTER_CREDIT_KILL_CREATURE:
+            {
+                CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo>(creditEntry);
+                if (!cInfo)
+                {
+                    sLog.outErrorDb("Table `instance_encounters` has an invalid creature (entry %u) linked to the encounter %u (%s), skipped!", creditEntry, entry, dungeonEncounter->encounterName[0]);
+                    continue;
+                }
+                break;
+            }
+            case ENCOUNTER_CREDIT_CAST_SPELL:
+            {
+                if (!sSpellTemplate.LookupEntry<SpellEntry>(creditEntry))
+                {
+                    // skip spells that aren't in dbc for now
+                    // sLog.outErrorDb("Table `instance_encounters` has an invalid spell (entry %u) linked to the encounter %u (%s), skipped!", creditEntry, entry, dungeonEncounter->encounterName[0]);
+                    continue;
+                }
+                break;
+            }
+            default:
+                sLog.outErrorDb("Table `instance_encounters` has an invalid credit type (%u) for encounter %u (%s), skipped!", creditType, entry, dungeonEncounter->encounterName[0]);
+                continue;
+        }
+        uint32 lastEncounterDungeon = fields[3].GetUInt32();
+
+        m_DungeonEncounters.insert(DungeonEncounterMap::value_type(creditEntry, new DungeonEncounter(dungeonEncounter, EncounterCreditType(creditType), creditEntry, lastEncounterDungeon)));
+    } while (result->NextRow());
+
+    delete result;
+
+    sLog.outString(">> Loaded " SIZEFMTD " Instance Encounters", m_DungeonEncounters.size());
+    sLog.outString();
+}
+
 struct SQLInstanceLoader : public SQLStorageLoaderBase<SQLInstanceLoader, SQLStorage>
 {
     template<class D>
@@ -4623,6 +4696,18 @@ void ObjectMgr::LoadConditions()
             sLog.outErrorDb("ObjectMgr::LoadConditions: invalid condition_entry %u, skip", i);
             sConditionStorage.EraseEntry(i);
             continue;
+        }
+    }
+
+    for (QuestMap::iterator iter = mQuestTemplates.begin(); iter != mQuestTemplates.end(); ++iter) // needs to be checked after loading conditions
+    {
+        Quest* qinfo = iter->second;
+
+        if (qinfo->RequiredCondition)
+        {
+            const PlayerCondition* condition = sConditionStorage.LookupEntry<PlayerCondition>(qinfo->RequiredCondition);
+            if (!condition) // condition does not exist for some reason
+                sLog.outErrorDb("Quest %u has `RequiredCondition` = %u but does not exist.", qinfo->GetQuestId(), qinfo->RequiredCondition);
         }
     }
 
@@ -7420,7 +7505,6 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         }
         case CONDITION_RESERVED_1:
         case CONDITION_RESERVED_2:
-        case CONDITION_RESERVED_3:
         case CONDITION_RESERVED_4:
             return false;
         case CONDITION_QUEST_NONE:
@@ -7502,6 +7586,33 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         {
             FactionEntry const* faction = sFactionStore.LookupEntry(m_value1);
             return faction && player->GetReputationMgr().GetRank(faction) <= ReputationRank(m_value2);
+        }
+        case CONDITION_COMPLETED_ENCOUNTER:
+        {
+            if (!map)
+                map = player ? player->GetMap() : source->GetMap();
+            if (!map->IsDungeon())
+            {
+                sLog.outErrorDb("CONDITION_COMPLETED_ENCOUNTER (entry %u) is used outside of a dungeon (on Map %u) by %s", m_entry, player->GetMapId(), player->GetGuidStr().c_str());
+                return false;
+            }
+
+            uint32 completedEncounterMask = ((DungeonMap*)map)->GetPersistanceState()->GetCompletedEncountersMask();
+            DungeonEncounterEntry const* dbcEntry1 = sDungeonEncounterStore.LookupEntry<DungeonEncounterEntry>(m_value1);
+            DungeonEncounterEntry const* dbcEntry2 = sDungeonEncounterStore.LookupEntry<DungeonEncounterEntry>(m_value2);
+            // Check that on proper map
+            if (dbcEntry1->mapId != map->GetId())
+            {
+                sLog.outErrorDb("CONDITION_COMPLETED_ENCOUNTER (entry %u, DungeonEncounterEntry %u) is used on wrong map (used on Map %u) by %s", m_entry, m_value1, player->GetMapId(), player->GetGuidStr().c_str());
+                return false;
+            }
+            // Select matching difficulties
+            if (map->GetDifficulty() != Difficulty(dbcEntry1->Difficulty))
+                dbcEntry1 = nullptr;
+            if (dbcEntry2 && map->GetDifficulty() != Difficulty(dbcEntry2->Difficulty))
+                dbcEntry2 = nullptr;
+
+            return !!(completedEncounterMask & ((dbcEntry1 ? 1 << dbcEntry1->encounterIndex : 0) | (dbcEntry2 ? 1 << dbcEntry2->encounterIndex : 0)));
         }
         case CONDITION_SOURCE_AURA:
         {
@@ -7600,10 +7711,11 @@ bool PlayerCondition::CheckParamRequirements(Player const* pPlayer, Map const* m
             }
             break;
         case CONDITION_INSTANCE_SCRIPT:
+        case CONDITION_COMPLETED_ENCOUNTER:
             if (!pPlayer && !source && !map)
             {
                 sLog.outErrorDb("CONDITION %u type %u used with bad parameters, called from %s, used with plr: %s, map %i, src %s",
-                                m_entry, m_condition, conditionSourceToStr[conditionSourceType], pPlayer ? pPlayer->GetGuidStr().c_str() : "nullptr", map ? map->GetId() : -1, source ? source->GetGuidStr().c_str() : "nullptr");
+                    m_entry, m_condition, conditionSourceToStr[conditionSourceType], pPlayer ? pPlayer->GetGuidStr().c_str() : "nullptr", map ? map->GetId() : -1, source ? source->GetGuidStr().c_str() : "nullptr");
                 return false;
             }
             break;
@@ -7916,7 +8028,6 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
             break;
         case CONDITION_RESERVED_1:
         case CONDITION_RESERVED_2:
-        case CONDITION_RESERVED_3:
         case CONDITION_RESERVED_4:
         {
             sLog.outErrorDb("Condition (%u) reserved for later versions, skipped", condition);
@@ -7946,6 +8057,27 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
                 }
             }
 
+            break;
+        }
+        case CONDITION_COMPLETED_ENCOUNTER:
+        {
+            DungeonEncounterEntry const* dbcEntry1 = sDungeonEncounterStore.LookupEntry<DungeonEncounterEntry>(value1);
+            DungeonEncounterEntry const* dbcEntry2 = sDungeonEncounterStore.LookupEntry<DungeonEncounterEntry>(value2);
+            if (!dbcEntry1)
+            {
+                sLog.outErrorDb("Completed Encounter condition (entry %u, type %u) has an unknown DungeonEncounter entry %u defined (in value1), skipping.", entry, condition, value1);
+                return false;
+            }
+            if (value2 && !dbcEntry2)
+            {
+                sLog.outErrorDb("Completed Encounter condition (entry %u, type %u) has an unknown DungeonEncounter entry %u defined (in value2), skipping.", entry, condition, value2);
+                return false;
+            }
+            if (dbcEntry2 && dbcEntry1->mapId != dbcEntry2->mapId)
+            {
+                sLog.outErrorDb("Completed Encounter condition (entry %u, type %u) has different mapIds for both encounters, skipping.", entry, condition);
+                return false;
+            }
             break;
         }
         case CONDITION_LAST_WAYPOINT:
@@ -8019,6 +8151,7 @@ bool PlayerCondition::CanBeUsedWithoutPlayer(uint16 entry)
         case CONDITION_AREAID:
         case CONDITION_AREA_FLAG:
         case CONDITION_INSTANCE_SCRIPT:
+        case CONDITION_COMPLETED_ENCOUNTER:
         case CONDITION_SOURCE_AURA:
         case CONDITION_LAST_WAYPOINT:
             return true;
@@ -8895,6 +9028,11 @@ void ObjectMgr::LoadGossipMenus()
 
     for (std::set<uint32>::const_iterator itr = gossipScriptSet.begin(); itr != gossipScriptSet.end(); ++itr)
         sLog.outErrorDb("Table `dbscripts_on_gossip` contains unused script, id %u.", *itr);
+}
+
+void ObjectMgr::LoadDungeonEncounters()
+{
+    sDungeonEncounterStore.Load();
 }
 
 void ObjectMgr::AddVendorItem(uint32 entry, uint32 item, uint32 maxcount, uint32 incrtime, uint32 extendedcost)

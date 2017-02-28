@@ -26,6 +26,7 @@
 #include "ObjectGuid.h"
 #include "Unit.h"
 #include "Player.h"
+#include "SQLStorages.h"
 
 class WorldSession;
 class WorldPacket;
@@ -34,6 +35,7 @@ class Item;
 class GameObject;
 class Group;
 class Aura;
+struct SpellTargetEntry;
 
 enum SpellCastFlags
 {
@@ -319,7 +321,7 @@ class Spell
         Spell(Unit* caster, SpellEntry const* info, uint32 triggeredFlags, ObjectGuid originalCasterGUID = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         ~Spell();
 
-        void SpellStart(SpellCastTargets const* targets, Aura* triggeredByAura = nullptr);
+        SpellCastResult SpellStart(SpellCastTargets const* targets, Aura* triggeredByAura = nullptr);
 
         void cancel();
 
@@ -466,6 +468,8 @@ class Spell
         void CleanupTargetList();
         void ClearCastItem();
 
+        void ProcSpellAuraTriggers();
+
         static void SelectMountByAreaAndSkill(Unit* target, SpellEntry const* parentSpell, uint32 spellId75, uint32 spellId150, uint32 spellId225, uint32 spellId300, uint32 spellIdSpecial);
 
         typedef std::list<Unit*> UnitList;
@@ -494,7 +498,7 @@ class Spell
         uint32 m_powerCost;                                 // Calculated spell cost     initialized only in Spell::prepare
         int32 m_casttime;                                   // Calculated spell cast time initialized only in Spell::prepare
         int32 m_duration;
-        bool m_canReflect;                                  // can reflect this spell?
+        bool m_reflectable;                                  // can reflect this spell?
         bool m_autoRepeat;
 
         uint8 m_delayAtDamageCount;
@@ -545,6 +549,7 @@ class Spell
         //*****************************************
         void FillTargetMap();
         void SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList& targetUnitMap);
+        void CheckSpellScriptTargets(SQLMultiStorage::SQLMSIteratorBounds<SpellTargetEntry> &bounds, UnitList &tempTargetUnitMap, UnitList &targetUnitMap, SpellEffectIndex effIndex);
 
         void FillAreaTargets(UnitList& targetUnitMap, float radius, SpellNotifyPushType pushType, SpellTargets spellTargets, WorldObject* originalCaster = nullptr);
         void FillRaidOrPartyTargets(UnitList& targetUnitMap, Unit* member, float radius, bool raid, bool withPets, bool withcaster) const;

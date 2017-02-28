@@ -825,6 +825,9 @@ void World::LoadConfigSettings(bool reload)
     MMAP::MMapFactory::preventPathfindingOnMaps(ignoreMapIds.c_str());
     sLog.outString("WORLD: MMap pathfinding %sabled", getConfig(CONFIG_BOOL_MMAP_ENABLED) ? "en" : "dis");
 
+    setConfig(CONFIG_BOOL_PATH_FIND_OPTIMIZE, "PathFinder.OptimizePath", true);
+    setConfig(CONFIG_BOOL_PATH_FIND_NORMALIZE_Z, "PathFinder.NormalizeZ", false);
+
     sLog.outString();
 }
 
@@ -1022,10 +1025,6 @@ void World::SetInitialWorldSettings()
     sLog.outString("Loading Weather Data...");
     sWeatherMgr.LoadWeatherZoneChances();
 
-    // Load Conditions
-    sLog.outString("Loading Conditions...");
-    sObjectMgr.LoadConditions();
-
     sLog.outString("Loading Quests...");
     sObjectMgr.LoadQuests();                                // must be loaded after DBCs, creature_template, item_template, gameobject tables
 
@@ -1038,6 +1037,12 @@ void World::SetInitialWorldSettings()
     sGameEventMgr.LoadFromDB();
     sLog.outString(">>> Game Event Data loaded");
     sLog.outString();
+
+    sLog.outString("Loading Dungeon Encounters...");
+    sObjectMgr.LoadDungeonEncounters();                     // Load DungeonEncounter.dbc from DB
+
+    sLog.outString("Loading Conditions...");                // Load Conditions
+    sObjectMgr.LoadConditions();
 
     sLog.outString("Creating map persistent states for non-instanceable maps...");     // must be after PackInstances(), LoadCreatures(), sPoolMgr.LoadFromDB(), sGameEventMgr.LoadFromDB();
     sMapPersistentStateMgr.InitWorldMaps();
@@ -1118,6 +1123,9 @@ void World::SetInitialWorldSettings()
 
     sLog.outString("Loading Skill Fishing base level requirements...");
     sObjectMgr.LoadFishingBaseSkillLevel();
+
+    sLog.outString("Loading Instance encounters data...");  // must be after Creature loading
+    sObjectMgr.LoadInstanceEncounters();
 
     sLog.outString("Loading Npc Text Id...");
     sObjectMgr.LoadNpcGossips();                            // must be after load Creature and LoadGossipText
