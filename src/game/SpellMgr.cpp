@@ -764,8 +764,8 @@ struct DoSpellProcEvent
         }
     }
 
-    const char* TableName() { return "spell_proc_event"; }
-    bool IsValidCustomRank(SpellProcEventEntry const& spe, uint32 entry, uint32 first_id)
+    static const char* TableName() { return "spell_proc_event"; }
+    bool IsValidCustomRank(SpellProcEventEntry const& spe, uint32 entry, uint32 first_id) const
     {
         // let have independent data in table for spells with ppm rates (exist rank dependent ppm rate spells)
         if (!spe.ppmRate)
@@ -833,7 +833,7 @@ struct DoSpellProcEvent
             ++count;
     }
 
-    bool HasEntry(uint32 spellId) { return spe_map.find(spellId) != spe_map.end(); }
+    bool HasEntry(uint32 spellId) const { return spe_map.find(spellId) != spe_map.end(); }
     bool SetStateToEntry(uint32 spellId) { return (state = spe_map.find(spellId)) != spe_map.end(); }
     SpellProcEventMap& spe_map;
     SpellProcEventMap::const_iterator state;
@@ -1122,6 +1122,43 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const* spellPr
     if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION))
         return true;
 
+    if (procFlags & PROC_FLAG_ON_DO_PERIODIC && EventProcFlag & PROC_FLAG_ON_DO_PERIODIC)
+    {
+        if (procExtra & PROC_EX_INTERNAL_HOT)
+        {
+            if (EventProcFlag == PROC_FLAG_ON_DO_PERIODIC)
+            {
+                /// no aura with only PROC_FLAG_DONE_PERIODIC and spellFamilyName == 0 can proc from a HOT.
+                if (!procSpell->SpellFamilyName)
+                    return false;
+            }
+            /// Aura must have positive procflags for a HOT to proc
+            else if (!(EventProcFlag & (PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_POS | PROC_FLAG_DONE_SPELL_NONE_DMG_CLASS_POS)))
+                return false;
+        }
+        /// Aura must have negative or neutral(PROC_FLAG_DONE_PERIODIC only) procflags for a DOT to proc
+        else if (EventProcFlag != PROC_FLAG_ON_DO_PERIODIC)
+            if (!(EventProcFlag & (PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_NEG | PROC_FLAG_DONE_SPELL_NONE_DMG_CLASS_NEG)))
+                return false;
+    }
+
+    if (procFlags & PROC_FLAG_ON_TAKE_PERIODIC && EventProcFlag & PROC_FLAG_ON_TAKE_PERIODIC)
+    {
+        if (procExtra & PROC_EX_INTERNAL_HOT)
+        {
+            /// No aura that only has PROC_FLAG_TAKEN_PERIODIC can proc from a HOT.
+            if (EventProcFlag == PROC_FLAG_ON_TAKE_PERIODIC)
+                return false;
+            /// Aura must have positive procflags for a HOT to proc
+            if (!(EventProcFlag & (PROC_FLAG_TAKEN_SPELL_MAGIC_DMG_CLASS_POS | PROC_FLAG_TAKEN_SPELL_NONE_DMG_CLASS_POS)))
+                return false;
+        }
+        /// Aura must have negative or neutral(PROC_FLAG_TAKEN_PERIODIC only) procflags for a DOT to proc
+        else if (EventProcFlag != PROC_FLAG_ON_TAKE_PERIODIC)
+            if (!(EventProcFlag & (PROC_FLAG_TAKEN_SPELL_MAGIC_DMG_CLASS_NEG | PROC_FLAG_TAKEN_SPELL_NONE_DMG_CLASS_NEG)))
+                return false;
+    }
+
     if (spellProcEvent)     // Exist event data
     {
         // Store extra req
@@ -1149,10 +1186,6 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const* spellPr
     // Check for extra req (if none) and hit/crit
     if (procEvent_procEx == PROC_EX_NONE)
     {
-        // Don't allow proc from periodic heal if no extra requirement is defined
-        if (EventProcFlag & (PROC_FLAG_ON_DO_PERIODIC | PROC_FLAG_ON_TAKE_PERIODIC) && (procExtra & PROC_EX_PERIODIC_POSITIVE))
-            return false;
-
         // No extra req, so can trigger for (damage/healing present) and hit/crit
         if (procExtra & (PROC_EX_NORMAL_HIT | PROC_EX_CRITICAL_HIT))
             return true;
@@ -1238,8 +1271,8 @@ struct DoSpellThreat
                 sLog.outErrorDb("Spell %u listed in `spell_threat` as custom rank has same data as Rank 1, so redundant", spell_id);
         }
     }
-    const char* TableName() { return "spell_threat"; }
-    bool IsValidCustomRank(SpellThreatEntry const& ste, uint32 entry, uint32 first_id)
+    const char* TableName() const { return "spell_threat"; }
+    bool IsValidCustomRank(SpellThreatEntry const& ste, uint32 entry, uint32 first_id) const
     {
         if (!ste.threat)
         {
@@ -1343,30 +1376,10 @@ bool SpellMgr::canStackSpellRanksInSpellBook(SpellEntry const* spellInfo) const
     if (IsSkillBonusSpell(spellInfo->Id))
         return false;
 
-    // All stance spells. if any better way, change it.
-    for (int i = 0; i < MAX_EFFECT_INDEX; ++i)
-    {
-        switch (spellInfo->SpellFamilyName)
-        {
-            case SPELLFAMILY_PALADIN:
-                // Paladin aura Spell
-                if (spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_PARTY)
-                    return false;
-                break;
-            case SPELLFAMILY_DRUID:
-                // Druid form Spell
-                if (spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA &&
-                        spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_SHAPESHIFT)
-                    return false;
-                break;
-            case SPELLFAMILY_ROGUE:
-                // Rogue Stealth
-                if (spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA &&
-                        spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_SHAPESHIFT)
-                    return false;
-                break;
-        }
-    }
+    // All stances and stance-like spells
+    if (spellInfo->HasAttribute(SPELL_ATTR_EX2_DISPLAY_IN_STANCE_BAR) || IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_SHAPESHIFT))
+        return false;
+
     return true;
 }
 
@@ -2563,7 +2576,7 @@ void SpellMgr::LoadSpellAreas()
     sLog.outString();
 }
 
-SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const* spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player)
+SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const* spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player) const
 {
     // normal case
     if (spellInfo->AreaId > 0 && spellInfo->AreaId != zone_id && spellInfo->AreaId != area_id)
@@ -2725,7 +2738,7 @@ void SpellMgr::LoadSkillRaceClassInfoMap()
     sLog.outString();
 }
 
-void SpellMgr::CheckUsedSpells(char const* table)
+void SpellMgr::CheckUsedSpells(char const* table) const
 {
     uint32 countSpells = 0;
     uint32 countMasks = 0;
@@ -3187,7 +3200,7 @@ void SpellArea::ApplyOrRemoveSpellIfCan(Player* player, uint32 newZone, uint32 n
     if (IsFitToRequirements(player, newZone, newArea))
     {
         if (autocast && !player->HasAura(spellId))
-            player->CastSpell(player, spellId, true);
+            player->CastSpell(player, spellId, TRIGGERED_OLD_TRIGGERED);
     }
     else if (!onlyApply && player->HasAura(spellId))
         player->RemoveAurasDueToSpell(spellId);

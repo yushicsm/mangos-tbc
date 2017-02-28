@@ -77,7 +77,8 @@ enum SpellAuraHolderState
 {
     SPELLAURAHOLDER_STATE_CREATED       = 0,                // just created, initialization steps
     SPELLAURAHOLDER_STATE_READY         = 1,                // all initialization steps are done
-    SPELLAURAHOLDER_STATE_REMOVING      = 2                 // removing steps
+    SPELLAURAHOLDER_STATE_REMOVING      = 2,                // removing steps
+    SPELLAURAHOLDER_STATE_DB_LOAD       = 3                 // during db load some events must not be executed
 };
 
 class MANGOS_DLL_SPEC SpellAuraHolder
@@ -443,7 +444,7 @@ class MANGOS_DLL_SPEC Aura
                 m_periodicTick = maxticks - GetAuraDuration() / m_modifier.periodictime;
         }
 
-        bool IsPositive() { return m_positive; }
+        bool IsPositive() const { return m_positive; }
         bool IsPersistent() const { return m_isPersistent; }
         bool IsAreaAura() const { return m_isAreaAura; }
         bool IsPeriodic() const { return m_isPeriodic; }

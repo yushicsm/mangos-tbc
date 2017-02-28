@@ -106,7 +106,7 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
             p << uint32(PETITION_SIGN_OK);
 
             // close at signer side
-            GetMaster()->GetSession()->SendPacket(&p);
+            GetMaster()->GetSession()->SendPacket(p);
 
             return;
         }
@@ -254,7 +254,7 @@ void PlayerbotMgr::HandleMasterIncomingPacket(const WorldPacket& packet)
                         if (bot->m_taxi.SetTaximaskNode(sourcenode))
                         {
                             WorldPacket data(SMSG_NEW_TAXI_PATH, 0);
-                            bot->GetSession()->SendPacket(&data);
+                            bot->GetSession()->SendPacket(data);
                         }
 
                         // DEBUG_LOG ("[PlayerbotMgr]: HandleMasterIncomingPacket - Received CMSG_MOVE_SPLINE_DONE Taxi has to go from %u to %u", sourcenode, destinationnode);

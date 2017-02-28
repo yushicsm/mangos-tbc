@@ -28,6 +28,7 @@
 #include "InstanceData.h"
 #include "Chat.h"
 #include "Language.h"
+#include "../TemporarySummon.h"
 
 bool CreatureEventAIHolder::UpdateRepeatTimer(Creature* creature, uint32 repeatMin, uint32 repeatMax)
 {
@@ -158,7 +159,7 @@ CreatureEventAI::CreatureEventAI(Creature* c) : CreatureAI(c),
     }
 }
 
-bool CreatureEventAI::IsTimerBasedEvent(EventAI_Type type)
+bool CreatureEventAI::IsTimerBasedEvent(EventAI_Type type) const
 {
     switch (type)
     {
@@ -1413,7 +1414,7 @@ bool CreatureEventAI::IsVisible(Unit* pl) const
            && pl->isVisibleForOrDetect(m_creature, m_creature, true);
 }
 
-inline uint32 CreatureEventAI::GetRandActionParam(uint32 rnd, uint32 param1, uint32 param2, uint32 param3)
+inline uint32 CreatureEventAI::GetRandActionParam(uint32 rnd, uint32 param1, uint32 param2, uint32 param3) const
 {
     switch (rnd % 3)
     {
@@ -1424,7 +1425,7 @@ inline uint32 CreatureEventAI::GetRandActionParam(uint32 rnd, uint32 param1, uin
     return 0;
 }
 
-inline int32 CreatureEventAI::GetRandActionParam(uint32 rnd, int32 param1, int32 param2, int32 param3)
+inline int32 CreatureEventAI::GetRandActionParam(uint32 rnd, int32 param1, int32 param2, int32 param3) const
 {
     switch (rnd % 3)
     {
@@ -1435,7 +1436,7 @@ inline int32 CreatureEventAI::GetRandActionParam(uint32 rnd, int32 param1, int32
     return 0;
 }
 
-inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoker, Creature* pAIEventSender, bool& isError, uint32 forSpellId, uint32 selectFlags)
+inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoker, Creature* pAIEventSender, bool& isError, uint32 forSpellId, uint32 selectFlags) const
 {
     Unit* resTarget;
     switch (Target)
@@ -1490,13 +1491,23 @@ inline Unit* CreatureEventAI::GetTargetByType(uint32 Target, Unit* pActionInvoke
             if (!pAIEventSender)
                 isError = true;
             return pAIEventSender;
+        case TARGET_T_SUMMONER:
+        {
+            if (TemporarySummon* summon = dynamic_cast<TemporarySummon*>(m_creature))
+                return summon->GetSummoner();
+            else
+            {
+                isError = true;
+                return nullptr;
+            }
+        }
         default:
             isError = true;
             return nullptr;
     };
 }
 
-Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff)
+Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff) const
 {
     Unit* pUnit = nullptr;
 
@@ -1511,14 +1522,14 @@ Unit* CreatureEventAI::DoSelectLowestHpFriendly(float range, uint32 MinHPDiff)
     return pUnit;
 }
 
-void CreatureEventAI::DoFindFriendlyCC(std::list<Creature*>& _list, float range)
+void CreatureEventAI::DoFindFriendlyCC(std::list<Creature*>& _list, float range) const
 {
     MaNGOS::FriendlyCCedInRangeCheck u_check(m_creature, range);
     MaNGOS::CreatureListSearcher<MaNGOS::FriendlyCCedInRangeCheck> searcher(_list, u_check);
     Cell::VisitGridObjects(m_creature, searcher, range);
 }
 
-void CreatureEventAI::DoFindFriendlyMissingBuff(std::list<Creature*>& _list, float range, uint32 spellid)
+void CreatureEventAI::DoFindFriendlyMissingBuff(std::list<Creature*>& _list, float range, uint32 spellid) const
 {
     MaNGOS::FriendlyMissingBuffInRangeCheck u_check(m_creature, range, spellid);
     MaNGOS::CreatureListSearcher<MaNGOS::FriendlyMissingBuffInRangeCheck> searcher(_list, u_check);
@@ -1600,7 +1611,7 @@ void CreatureEventAI::HealedBy(Unit* healer, uint32& healedAmount)
     }
 }
 
-bool CreatureEventAI::SpawnedEventConditionsCheck(CreatureEventAI_Event const& event)
+bool CreatureEventAI::SpawnedEventConditionsCheck(CreatureEventAI_Event const& event) const
 {
     if (event.event_type != EVENT_T_SPAWNED)
         return false;

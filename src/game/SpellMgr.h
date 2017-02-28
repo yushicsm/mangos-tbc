@@ -317,9 +317,75 @@ inline bool IsNonCombatSpell(SpellEntry const* spellInfo)
 bool IsExplicitPositiveTarget(uint32 targetA);
 bool IsExplicitNegativeTarget(uint32 targetA);
 
-// TODO: research binary spells
 inline bool IsBinarySpell(SpellEntry const* spellInfo)
 {
+    // Spell is considered binary if:
+    // * Its composed entirely out of non-damage and aura effects (Example: Mind Flay, Vampiric Embrace, DoTs, etc)
+    // * Has damage and non-damage effects with additional mechanics (Example: Death Coil, Frost Nova)
+    uint32 effectmask = 0;  // A bitmask of effects: set bits are valid effects
+    uint32 nondmgmask = 0;  // A bitmask of effects: set bits are non-damage effects
+    uint32 mechmask = 0;    // A bitmask of effects: set bits are non-damage effects with additional mechanics
+    for (uint32 i = EFFECT_INDEX_0; i < MAX_EFFECT_INDEX; ++i)
+    {
+        if (!spellInfo->Effect[i] || IsSpellEffectTriggerSpell(spellInfo, SpellEffectIndex(i)))
+            continue;
+
+        effectmask |= (1 << i);
+
+        bool damage = false;
+        if (!spellInfo->EffectApplyAuraName[i])
+        {
+            // If its not an aura effect, check for damage effects
+            switch (spellInfo->Effect[i])
+            {
+                case SPELL_EFFECT_SCHOOL_DAMAGE:
+                case SPELL_EFFECT_ENVIRONMENTAL_DAMAGE:
+                case SPELL_EFFECT_HEALTH_LEECH:
+                case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
+                case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
+                case SPELL_EFFECT_WEAPON_DAMAGE:
+                //   SPELL_EFFECT_POWER_BURN: deals damage for power burned, but its either full damage or resist?
+                case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
+                    damage = true;
+                    break;
+            }
+        }
+        if (!damage)
+        {
+            nondmgmask |= (1 << i);
+            if (spellInfo->EffectMechanic[i])
+                mechmask |= (1 << i);
+        }
+    }
+    // No non-damage involved at all: assumed all effects which should be rolled separately or no effects
+    if (!effectmask || !nondmgmask)
+        return false;
+    // All effects are non-damage
+    if (nondmgmask == effectmask)
+        return true;
+    // No non-damage effects with additional mechanics
+    if (!mechmask)
+        return false;
+    // Binary spells execution order detection
+    for (uint32 i = EFFECT_INDEX_0; i < MAX_EFFECT_INDEX; ++i)
+    {
+        // If effect is present and not a non-damage effect
+        const uint32 effect = (1 << i);
+        if ((effectmask & effect) && !(nondmgmask & effect))
+        {
+            // Iterate over mechanics
+            for (uint32 e = EFFECT_INDEX_0; e < MAX_EFFECT_INDEX; ++e)
+            {
+                // If effect is extra mechanic on the same target as damage effect
+                if ((mechmask & (1 << e)) &&
+                    spellInfo->EffectImplicitTargetA[i] == spellInfo->EffectImplicitTargetA[e] &&
+                    spellInfo->EffectImplicitTargetB[i] == spellInfo->EffectImplicitTargetB[e])
+                {
+                    return (e > i); // Post-2.3: checks the order of application
+                }
+            }
+        }
+    }
     return false;
 }
 
@@ -517,7 +583,7 @@ inline bool IsSingleTargetSpell(SpellEntry const* spellInfo)
 
 inline bool IsSingleTargetSpells(SpellEntry const* spellInfo1, SpellEntry const* spellInfo2)
 {
-    return (IsSingleTargetSpell(spellInfo1) && (spellInfo1->Id == spellInfo2->Id || (spellInfo1->SpellFamilyFlags.Flags == spellInfo2->SpellFamilyFlags.Flags && IsSingleTargetSpell(spellInfo2))));
+    return (IsSingleTargetSpell(spellInfo1) && (spellInfo1->Id == spellInfo2->Id || (spellInfo1->SpellFamilyFlags == spellInfo2->SpellFamilyFlags && IsSingleTargetSpell(spellInfo2))));
 }
 
 inline bool IsScriptTarget(uint32 target)
@@ -1115,17 +1181,10 @@ inline bool IsSimilarAuraEffect(SpellEntry const* entry, int32 effect, SpellEntr
 
 inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* entry2, int32 i, Unit* pTarget = nullptr)
 {
-    // Ignore non-aura effects
-    if (!entry->EffectApplyAuraName[i])
-        return true;
-
-    // Short alias
     const uint32 aura = entry->EffectApplyAuraName[i];
-    const bool positive = (IsPositiveEffect(entry, SpellEffectIndex(i)));
-    const bool related = (entry->SpellFamilyName == entry2->SpellFamilyName);
-    const bool player = (entry->SpellFamilyName && entry->SpellFamilyFlags.Flags);
-    const bool multirank = (player && related && entry->SpellFamilyFlags.Flags == entry2->SpellFamilyFlags.Flags);
-    const bool instance = (entry->Id == entry2->Id || multirank);
+    // Ignore non-aura effects
+    if (!aura)
+        return true;
 
     // Get first similar - second spell's same aura with the same sign
     int32 similar = EFFECT_INDEX_0;
@@ -1143,6 +1202,15 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
     // Special rule for food buffs
     if (GetSpellSpecific(entry->Id) == SPELL_WELL_FED && GetSpellSpecific(entry2->Id) != SPELL_WELL_FED)
         return true;
+
+    // Short alias
+    const bool positive = (IsPositiveEffect(entry, SpellEffectIndex(i)));
+    const bool related = (entry->SpellFamilyName == entry2->SpellFamilyName);
+    const bool siblings = (entry->SpellFamilyFlags == entry2->SpellFamilyFlags);
+    const bool player = (entry->SpellFamilyName && !entry->SpellFamilyFlags.Empty());
+    const bool player2 = (entry2->SpellFamilyName && !entry2->SpellFamilyFlags.Empty());
+    const bool multirank = (related && siblings && player);
+    const bool instance = (entry->Id == entry2->Id || multirank);
 
     // If aura makes spell not multi-instanceable (do not stack the same spell id or ranks of this spell)
     bool nonmui = false;
@@ -1197,10 +1265,10 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
         // Raid debuffs: Hunter's Mark and Expose Weakness stack with each other, but not itself
         case SPELL_AURA_RANGED_ATTACK_POWER_ATTACKER_BONUS:
         case SPELL_AURA_MELEE_ATTACK_POWER_ATTACKER_BONUS:
-            return (!related || entry->SpellFamilyFlags != entry2->SpellFamilyFlags);
+            return (!related || !siblings);
             break;
-        // Attack Power debuffs logic: Do not stack Curse of Weakness, Demoralizing Roars/Shouts
         case SPELL_AURA_MOD_ATTACK_POWER:
+            // Attack Power debuffs logic: Do not stack Curse of Weakness, Demoralizing Roars/Shouts
             if (!positive && entry->EffectBasePoints[i] < 1 && entry2->EffectBasePoints[similar] < 1)
                 return (!entry->SpellFamilyName && !entry->SpellFamilyName);
             break;
@@ -1217,7 +1285,7 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
                 return false; // Magical-physical armor debuff hybrid: Crystal yield and similar
             if (!positive && (entry->SchoolMask != entry2->SchoolMask))
                 return true;
-            return (positive && (!related || entry->SpellFamilyFlags != entry2->SpellFamilyFlags));
+            return (positive && (!related || !siblings));
             break;
         }
         // By default base stats cannot stack if they're similar
@@ -1293,8 +1361,8 @@ inline bool IsStackableAuraEffect(SpellEntry const* entry, SpellEntry const* ent
 
 inline bool IsStackableSpell(SpellEntry const* entry, SpellEntry const* entry2, Unit* pTarget = nullptr)
 {
-    if (!entry->EffectApplyAuraName[0] && !entry->EffectApplyAuraName[1] && !entry->EffectApplyAuraName[2] ||
-        !entry2->EffectApplyAuraName[0] && !entry2->EffectApplyAuraName[1] && !entry2->EffectApplyAuraName[2])
+    if ((!entry->EffectApplyAuraName[0] && !entry->EffectApplyAuraName[1] && !entry->EffectApplyAuraName[2]) ||
+        (!entry2->EffectApplyAuraName[0] && !entry2->EffectApplyAuraName[1] && !entry2->EffectApplyAuraName[2]))
         return true;
 
     for (int32 i = EFFECT_INDEX_0; i < MAX_EFFECT_INDEX; ++i)
@@ -1411,17 +1479,17 @@ enum ProcFlags
     PROC_FLAG_SUCCESSFUL_RANGED_SPELL_HIT   = 0x00000100,   // 08 Successful Ranged attack by Spell that use ranged weapon
     PROC_FLAG_TAKEN_RANGED_SPELL_HIT        = 0x00000200,   // 09 Taken damage by Spell that use ranged weapon
 
-    PROC_FLAG_SUCCESSFUL_POSITIVE_AOE_HIT   = 0x00000400,   // 10 Successful AoE (not 100% shure unused)
-    PROC_FLAG_TAKEN_POSITIVE_AOE            = 0x00000800,   // 11 Taken AoE      (not 100% shure unused)
+    PROC_FLAG_DONE_SPELL_NONE_DMG_CLASS_POS     = 0x00000400,  // 10 Done positive spell that has dmg class none
+    PROC_FLAG_TAKEN_SPELL_NONE_DMG_CLASS_POS    = 0x00000800,  // 11 Taken positive spell that has dmg class none
 
-    PROC_FLAG_SUCCESSFUL_AOE_SPELL_HIT      = 0x00001000,   // 12 Successful AoE damage spell hit (not 100% shure unused)
-    PROC_FLAG_TAKEN_AOE_SPELL_HIT           = 0x00002000,   // 13 Taken AoE damage spell hit      (not 100% shure unused)
+    PROC_FLAG_DONE_SPELL_NONE_DMG_CLASS_NEG     = 0x00001000,  // 12 Done negative spell that has dmg class none
+    PROC_FLAG_TAKEN_SPELL_NONE_DMG_CLASS_NEG    = 0x00002000,  // 13 Taken negative spell that has dmg class none
 
-    PROC_FLAG_SUCCESSFUL_POSITIVE_SPELL     = 0x00004000,   // 14 Successful cast positive spell (by default only on healing)
-    PROC_FLAG_TAKEN_POSITIVE_SPELL          = 0x00008000,   // 15 Taken positive spell hit (by default only on healing)
+    PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_POS    = 0x00004000,  // 14 Successful cast positive spell (by default only on healing)
+    PROC_FLAG_TAKEN_SPELL_MAGIC_DMG_CLASS_POS   = 0x00008000,  // 15 Taken positive spell hit (by default only on healing)
 
-    PROC_FLAG_SUCCESSFUL_NEGATIVE_SPELL_HIT = 0x00010000,   // 16 Successful negative spell cast (by default only on damage)
-    PROC_FLAG_TAKEN_NEGATIVE_SPELL_HIT      = 0x00020000,   // 17 Taken negative spell (by default only on damage)
+    PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_NEG    = 0x00010000,  // 16 Successful negative spell cast (by default only on damage)
+    PROC_FLAG_TAKEN_SPELL_MAGIC_DMG_CLASS_NEG   = 0x00020000,  // 17 Taken negative spell (by default only on damage)
 
     PROC_FLAG_ON_DO_PERIODIC                = 0x00040000,   // 18 Successful do periodic (damage / healing, determined by PROC_EX_PERIODIC_POSITIVE or negative if no procEx)
     PROC_FLAG_ON_TAKE_PERIODIC              = 0x00080000,   // 19 Taken spell periodic (damage / healing, determined by PROC_EX_PERIODIC_POSITIVE or negative if no procEx)
@@ -1443,10 +1511,10 @@ enum ProcFlags
                                   PROC_FLAG_TAKEN_RANGED_SPELL_HIT)
 
 #define NEGATIVE_TRIGGER_MASK (MELEE_BASED_TRIGGER_MASK                | \
-                               PROC_FLAG_SUCCESSFUL_AOE_SPELL_HIT      | \
-                               PROC_FLAG_TAKEN_AOE_SPELL_HIT           | \
-                               PROC_FLAG_SUCCESSFUL_NEGATIVE_SPELL_HIT | \
-                               PROC_FLAG_TAKEN_NEGATIVE_SPELL_HIT)
+                               PROC_FLAG_DONE_SPELL_NONE_DMG_CLASS_NEG      | \
+                               PROC_FLAG_TAKEN_SPELL_NONE_DMG_CLASS_NEG           | \
+                               PROC_FLAG_DONE_SPELL_MAGIC_DMG_CLASS_NEG | \
+                               PROC_FLAG_TAKEN_SPELL_MAGIC_DMG_CLASS_NEG)
 
 enum ProcFlagsEx
 {
@@ -1469,7 +1537,10 @@ enum ProcFlagsEx
     PROC_EX_RESERVED3           = 0x0008000,
     PROC_EX_EX_TRIGGER_ALWAYS   = 0x0010000,                // If set trigger always ( no matter another flags) used for drop charges
     PROC_EX_EX_ONE_TIME_TRIGGER = 0x0020000,                // If set trigger always but only one time (not used)
-    PROC_EX_PERIODIC_POSITIVE   = 0x0040000                 // For periodic heal
+    PROC_EX_PERIODIC_POSITIVE   = 0x0040000,                 // For periodic heal
+
+    // Flags for internal use - do not use these in db!
+    PROC_EX_INTERNAL_HOT        = 0x2000000
 };
 
 struct SpellProcEventEntry
@@ -1925,7 +1996,7 @@ class SpellMgr
                 return nullptr;
         }
 
-        SpellCastResult GetSpellAllowedInLocationError(SpellEntry const* spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player = nullptr);
+        SpellCastResult GetSpellAllowedInLocationError(SpellEntry const* spellInfo, uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player = nullptr) const;
 
         SpellAreaMapBounds GetSpellAreaMapBounds(uint32 spell_id) const
         {
@@ -1946,7 +2017,7 @@ class SpellMgr
     public:
         static SpellMgr& Instance();
 
-        void CheckUsedSpells(char const* table);
+        void CheckUsedSpells(char const* table) const;
 
         // Loading data at server startup
         void LoadSpellChains();

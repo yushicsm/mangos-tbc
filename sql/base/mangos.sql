@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` varchar(120) DEFAULT NULL,
   `creature_ai_version` varchar(120) DEFAULT NULL,
-  `required_s2332_01_mangos_more_spell_data` bit(1) DEFAULT NULL
+  `required_s2338_01_mangos_item_extraflags` bit(1) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Used DB version notes';
 
 --
@@ -97,6 +97,7 @@ CREATE TABLE `areatrigger_teleport` (
   `target_position_y` float NOT NULL DEFAULT '0',
   `target_position_z` float NOT NULL DEFAULT '0',
   `target_orientation` float NOT NULL DEFAULT '0',
+  `condition_id` INT(11) unsigned NOT NULL default '0',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='Trigger System';
 
@@ -3977,6 +3978,7 @@ CREATE TABLE `npc_trainer` (
   `reqskill` smallint(5) unsigned NOT NULL DEFAULT '0',
   `reqskillvalue` smallint(5) unsigned NOT NULL DEFAULT '0',
   `reqlevel` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `condition_id` INT(11) unsigned NOT NULL default '0',
   UNIQUE KEY `entry_spell` (`entry`,`spell`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -4001,6 +4003,7 @@ CREATE TABLE `npc_trainer_template` (
   `reqskill` smallint(5) unsigned NOT NULL DEFAULT '0',
   `reqskillvalue` smallint(5) unsigned NOT NULL DEFAULT '0',
   `reqlevel` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `condition_id` INT(11) unsigned NOT NULL default '0',
   UNIQUE KEY `entry_spell` (`entry`,`spell`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -11438,6 +11441,7 @@ CREATE TABLE `quest_template` (
   `RequiredRaces` smallint(5) unsigned NOT NULL DEFAULT '0',
   `RequiredSkill` smallint(5) unsigned NOT NULL DEFAULT '0',
   `RequiredSkillValue` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `RequiredCondition` INT(11) UNSIGNED NOT NULL DEFAULT '0',
   `RepObjectiveFaction` smallint(5) unsigned NOT NULL DEFAULT '0',
   `RepObjectiveValue` mediumint(9) NOT NULL DEFAULT '0',
   `RequiredMinRepFaction` smallint(5) unsigned NOT NULL DEFAULT '0',
@@ -13209,6 +13213,7 @@ INSERT INTO `spell_bonus_data` VALUES
 (379,   0,      0,       0,     0,     'Shaman - Earth Shield Triggered'),
 (8042,  0.3857, 0,       0,     0,     'Shaman - Earth Shock'),
 (10444, 0,      0,       0,     0,     'Shaman - Flametongue Attack Triggered'),
+(8026,  0.1,    0,       0,     0,     'Shaman - Flametongue Weapon Proc Rank 1'),
 (8056,  0.3857, 0,       0,     0,     'Shaman - Frost Shock'),
 (8034,  0.1,    0,       0,     0,     'Shaman - Frostbrand Attack'),
 (5672,  0,      0.045,   0,     0,     'Shaman - Healing Stream Totem'),
@@ -13319,6 +13324,14 @@ INSERT INTO `spell_chain` VALUES
 (11307,11306,8349,5,0),
 (25535,11307,8349,6,0),
 (25537,25535,8349,7,0),
+/* Flametongue Weapon Proc */
+(8026, 0, 8026, 1, 0),
+(8028, 8026, 8026, 2, 0),
+(8029, 8028, 8026, 3, 0),
+(10445, 8029, 8026, 4, 0),
+(16343, 10445, 8026, 5, 0),
+(16344, 16343, 8026, 6, 0),
+(25488, 16344, 8026, 7, 0),
 /* Frostbrand Attack */
 (8034,0,8034,1,0),
 (8037,8034,8034,2,0),
@@ -15930,9 +15943,7 @@ INSERT INTO `spell_threat` VALUES
 (33619,       0,    0,    0),
 (33745,     285,    1,    0),
 (33778,       0,    0,    0),
-(33878,     129,    1,    0),
-(33986,     180,    1,    0),
-(33987,     232,    1,    0),
+(33878,       0,  1.3,    0),
 (44041,       0,  0.5,    0);
 /*!40000 ALTER TABLE `spell_threat` ENABLE KEYS */;
 UNLOCK TABLES;

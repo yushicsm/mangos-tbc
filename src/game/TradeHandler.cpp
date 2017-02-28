@@ -29,7 +29,7 @@
 #include "SocialMgr.h"
 #include "DBCStores.h"
 
-void WorldSession::SendTradeStatus(TradeStatusInfo const& info)
+void WorldSession::SendTradeStatus(TradeStatusInfo const& info) const
 {
     WorldPacket data(SMSG_TRADE_STATUS, 13);
     data << uint32(info.Status);
@@ -55,7 +55,7 @@ void WorldSession::SendTradeStatus(TradeStatusInfo const& info)
             break;
     }
 
-    SendPacket(&data);
+    SendPacket(data);
 }
 
 void WorldSession::HandleIgnoreTradeOpcode(WorldPacket& /*recvPacket*/)
@@ -70,7 +70,7 @@ void WorldSession::HandleBusyTradeOpcode(WorldPacket& /*recvPacket*/)
     // recvPacket.print_storage();
 }
 
-void WorldSession::SendUpdateTrade(bool trader_state /*= true*/)
+void WorldSession::SendUpdateTrade(bool trader_state /*= true*/) const
 {
     TradeData* view_trade = trader_state ? _player->GetTradeData()->GetTraderData() : _player->GetTradeData();
 
@@ -115,7 +115,7 @@ void WorldSession::SendUpdateTrade(bool trader_state /*= true*/)
                 data << uint32(0);
         }
     }
-    SendPacket(&data);
+    SendPacket(data);
 }
 
 //==============================================================

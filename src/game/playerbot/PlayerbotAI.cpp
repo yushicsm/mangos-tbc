@@ -1515,9 +1515,9 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
             if (canObeyCommandFrom(*pPlayer))
             {
                 m_bot->GetMotionMaster()->Clear(true);
-                WorldPacket* const packet = new WorldPacket(CMSG_DUEL_ACCEPTED, 8);
+                std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_DUEL_ACCEPTED, 8));
                 *packet << flagGuid;
-                m_bot->GetSession()->QueuePacket(packet); // queue the packet to get around race condition
+                m_bot->GetSession()->QueuePacket(std::move(packet)); // queue the packet to get around race condition
 
                 // follow target in casting range
                 float angle = rand_float(0, M_PI_F);
@@ -1911,7 +1911,7 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
                                 }
                         }
                     }
-                    if (spellMount > 0) m_bot->CastSpell(m_bot, spellMount, false);
+                    if (spellMount > 0) m_bot->CastSpell(m_bot, spellMount, TRIGGERED_NONE);
                 }
             }
             else if (!GetMaster()->IsMounted() && m_bot->IsMounted())
@@ -2225,10 +2225,10 @@ void PlayerbotAI::HandleBotOutgoingPacket(const WorldPacket& packet)
                 ObjectGuid guid;
                 p >> guid;
 
-                WorldPacket* const packet = new WorldPacket(CMSG_RESURRECT_RESPONSE, 8 + 1);
+                std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_RESURRECT_RESPONSE, 8 + 1));
                 *packet << guid;
                 *packet << uint8(1);                        // accept
-                m_bot->GetSession()->QueuePacket(packet);   // queue the packet to get around race condition
+                m_bot->GetSession()->QueuePacket(std::move(packet));   // queue the packet to get around race condition
 
                 // set back to normal
                 SetState(BOTSTATE_NORMAL);
@@ -2833,11 +2833,11 @@ Item* PlayerbotAI::FindConsumable(uint32 displayId) const
 void PlayerbotAI::InterruptCurrentCastingSpell()
 {
     // TellMaster("I'm interrupting my current spell!");
-    WorldPacket* const packet = new WorldPacket(CMSG_CANCEL_CAST, 5);  //changed from thetourist suggestion
+    std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_CANCEL_CAST, 5));  //changed from thetourist suggestion
     *packet << m_CurrentlyCastingSpellId;
     *packet << m_targetGuidCommand;   //changed from thetourist suggestion
     m_CurrentlyCastingSpellId = 0;
-    m_bot->GetSession()->QueuePacket(packet);
+    m_bot->GetSession()->QueuePacket(std::move(packet));
 }
 
 void PlayerbotAI::Feast()
@@ -3334,9 +3334,9 @@ void PlayerbotAI::DoLoot()
             if (c->HasFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_LOOTABLE) && !c->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE))
             {
                 // loot the creature
-                WorldPacket* const packet = new WorldPacket(CMSG_LOOT, 8);
+                std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_LOOT, 8));
                 *packet << m_lootCurrent;
-                m_bot->GetSession()->QueuePacket(packet);
+                m_bot->GetSession()->QueuePacket(std::move(packet));
                 return; // no further processing is needed
                 // m_lootCurrent is reset in SMSG_LOOT_RELEASE_RESPONSE after checking for skinloot
             }
@@ -3625,7 +3625,7 @@ void PlayerbotAI::AcceptQuest(Quest const *qInfo, Player *pGiver)
                 // there and there is no default case also.
 
                 if (qInfo->GetSrcSpell() > 0)
-                    m_bot->CastSpell(m_bot, qInfo->GetSrcSpell(), true);
+                    m_bot->CastSpell(m_bot, qInfo->GetSrcSpell(), TRIGGERED_OLD_TRIGGERED);
     }
 }
 
@@ -4370,7 +4370,7 @@ void PlayerbotAI::PlaySound(uint32 soundid)
 {
     WorldPacket data(SMSG_PLAY_SOUND, 4);
     data << soundid;
-    GetMaster()->GetSession()->SendPacket(&data);
+    GetMaster()->GetSession()->SendPacket(data);
 }
 
 // PlaySound data from SoundEntries.dbc
@@ -4775,7 +4775,7 @@ void PlayerbotAI::SendWhisper(const std::string& text, Player& player) const
 {
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, text.c_str(), LANG_UNIVERSAL, m_bot->GetChatTag(), m_bot->GetObjectGuid(), m_bot->GetName());
-    player.GetSession()->SendPacket(&data);
+    player.GetSession()->SendPacket(data);
 }
 
 bool PlayerbotAI::canObeyCommandFrom(const Player& player) const
@@ -4923,18 +4923,18 @@ bool PlayerbotAI::CastSpell(uint32 spellId)
             if (!CheckBotCast(pSpellInfo))
                 return false;
 
-            WorldPacket* const packet = new WorldPacket(CMSG_CAST_SPELL, 4+1+4+8);
+            std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_CAST_SPELL, 4+1+4+8));
             *packet << spellId;
             *packet << uint8(0);                            // spells cast count;
             *packet << target_type;
             *packet << m_lootCurrent.WriteAsPacked();
-            m_bot->GetSession()->QueuePacket(packet);       // queue the packet to get around race condition */
+            m_bot->GetSession()->QueuePacket(std::move(packet));       // queue the packet to get around race condition */
 
             if (target_type == TARGET_FLAG_OBJECT)
             {
-                WorldPacket* const packetgouse = new WorldPacket(CMSG_GAMEOBJ_USE, 8);
+                std::unique_ptr<WorldPacket> packetgouse(new WorldPacket(CMSG_GAMEOBJ_USE, 8));
                 *packetgouse << m_lootCurrent;
-                m_bot->GetSession()->QueuePacket(packetgouse);  // queue the packet to get around race condition
+                m_bot->GetSession()->QueuePacket(std::move(packetgouse));  // queue the packet to get around race condition
 
                 GameObject *obj = m_bot->GetMap()->GetGameObject(m_lootCurrent);
                 if (!obj)
@@ -4976,9 +4976,9 @@ bool PlayerbotAI::CastSpell(uint32 spellId)
             return false;
 
         if (IsAutoRepeatRangedSpell(pSpellInfo))
-            m_bot->CastSpell(pTarget, pSpellInfo, true);       // cast triggered spell
+            m_bot->CastSpell(pTarget, pSpellInfo, TRIGGERED_OLD_TRIGGERED);       // cast triggered spell
         else
-            m_bot->CastSpell(pTarget, pSpellInfo, false);      // uni-cast spell
+            m_bot->CastSpell(pTarget, pSpellInfo, TRIGGERED_NONE);      // uni-cast spell
     }
 
     SetIgnoreUpdateTime(CastTime + 1);
@@ -5028,7 +5028,7 @@ bool PlayerbotAI::CastPetSpell(uint32 spellId, Unit* target)
             pet->SetFacingTo(pet->GetAngle(pTarget));
     }
 
-    pet->CastSpell(pTarget, pSpellInfo, false);
+    pet->CastSpell(pTarget, pSpellInfo, TRIGGERED_NONE);
 
     Spell* const pSpell = pet->FindCurrentSpellBySpellId(spellId);
     if (!pSpell)
@@ -5105,7 +5105,7 @@ bool PlayerbotAI::CanReceiveSpecificSpell(uint8 spec, Unit* target) const
         Unit::SpellAuraHolderMap holders = target->GetSpellAuraHolderMap();
         Unit::SpellAuraHolderMap::iterator it;
         for (it = holders.begin(); it != holders.end(); ++it)
-            if ((*it).second->GetCasterGuid() == m_bot->GetObjectGuid() && GetSpellSpecific((*it).second->GetId()) == SpellSpecific(spec))
+            if ((*it).second->GetCasterGuid() == m_bot->GetObjectGuid() && IsSpellSpecificIdentical(GetSpellSpecific((*it).second->GetId()), SpellSpecific(spec)))
                 return false;
     }
     return true;
@@ -6320,11 +6320,11 @@ void PlayerbotAI::UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID)
         if (qInfo)
         {
             m_bot->GetMotionMaster()->Clear(true);
-            WorldPacket* const packet = new WorldPacket(CMSG_QUESTGIVER_ACCEPT_QUEST, 8 + 4 + 4);
+            std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_QUESTGIVER_ACCEPT_QUEST, 8 + 4 + 4));
             *packet << item_guid;
             *packet << questid;
             *packet << uint32(0);
-            m_bot->GetSession()->QueuePacket(packet); // queue the packet to get around race condition
+            m_bot->GetSession()->QueuePacket(std::move(packet)); // queue the packet to get around race condition
             report << "|cffffff00Quest taken |r" << qInfo->GetTitle();
             TellMaster(report.str());
         }
@@ -6344,10 +6344,10 @@ void PlayerbotAI::UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID)
     if (item->GetProto()->Flags & ITEM_FLAG_HAS_LOOT && spellId == 0)
     {
         // Open quest item in inventory, containing related items (e.g Gnarlpine necklace, containing Tallonkai's Jewel)
-        WorldPacket* const packet = new WorldPacket(CMSG_OPEN_ITEM, 2);
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_OPEN_ITEM, 2));
         *packet << item->GetBagSlot();
         *packet << item->GetSlot();
-        m_bot->GetSession()->QueuePacket(packet); // queue the packet to get around race condition
+        m_bot->GetSession()->QueuePacket(std::move(packet)); // queue the packet to get around race condition
         return;
     }
 
@@ -6373,7 +6373,7 @@ void PlayerbotAI::UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID)
 
     m_CurrentlyCastingSpellId = spellId;
 
-    WorldPacket* const packet = new WorldPacket(CMSG_USE_ITEM, 20);
+    std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_USE_ITEM, 20));
     *packet << bagIndex;
     *packet << slot;
     *packet << spell_count;
@@ -6384,7 +6384,7 @@ void PlayerbotAI::UseItem(Item *item, uint32 targetFlag, ObjectGuid targetGUID)
     if (targetFlag & (TARGET_FLAG_UNIT | TARGET_FLAG_ITEM | TARGET_FLAG_OBJECT))
         *packet << targetGUID.WriteAsPacked();
 
-    m_bot->GetSession()->QueuePacket(packet);
+    m_bot->GetSession()->QueuePacket(std::move(packet));
 }
 
 // submits packet to use an item
@@ -6492,10 +6492,10 @@ bool PlayerbotAI::TradeItem(const Item& item, int8 slot)
 
         if (tradeSlot == -1) return false;
 
-        WorldPacket* const packet = new WorldPacket(CMSG_SET_TRADE_ITEM, 3);
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_SET_TRADE_ITEM, 3));
         *packet << (uint8) tradeSlot << (uint8) item.GetBagSlot()
             << (uint8) item.GetSlot();
-        m_bot->GetSession()->QueuePacket(packet);
+        m_bot->GetSession()->QueuePacket(std::move(packet));
         return true;
 }
 
@@ -6504,9 +6504,9 @@ bool PlayerbotAI::TradeCopper(uint32 copper)
 {
     if (copper > 0)
     {
-        WorldPacket* const packet = new WorldPacket(CMSG_SET_TRADE_GOLD, 4);
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_SET_TRADE_GOLD, 4));
         *packet << copper;
-        m_bot->GetSession()->QueuePacket(packet);
+        m_bot->GetSession()->QueuePacket(std::move(packet));
         return true;
     }
     return false;
@@ -6613,6 +6613,11 @@ void PlayerbotAI::_doSellItem(Item* const item, std::ostringstream &report, std:
     if (!item)
         return;
 
+    ItemPrototype const* pProto = item->GetProto();
+
+    if (!pProto)
+        return;
+
     uint8 autosell = 0;
 
     std::ostringstream mout;
@@ -6642,10 +6647,24 @@ void PlayerbotAI::_doSellItem(Item* const item, std::ostringstream &report, std:
 
     if (autosell == 1) // set this switch above and this item gets sold automatically. Only set this for automatic sales e.g junk etc.
     {
-        uint32 cost = item->GetCount() * item->GetProto()->SellPrice;
-        m_bot->ModifyMoney(cost);
+        uint32 cost = item->GetProto()->SellPrice * item->GetCount();
+        // handle spell charge if any
+        for (auto i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+        {
+            auto const &spell = pProto->Spells[i];
+
+            // if spell charges for this item are negative, it means that the item should be destroyed once the charges are consumed.
+            // it also means that the value of this item is relative to how many charges are remaining.
+            if (spell.SpellId != 0 && spell.SpellCharges < 0)
+            {
+                auto const multiplier = static_cast<float>(item->GetSpellCharges(i)) / spell.SpellCharges;
+                cost *= multiplier;
+                break;
+            }
+        }
         m_bot->MoveItemFromInventory(item->GetBagSlot(), item->GetSlot(), true);
-        m_bot->AddItemToBuyBackSlot(item);
+        m_bot->AddItemToBuyBackSlot(item, cost);
+        m_bot->ModifyMoney(cost);
 
         ++TotalSold;
         TotalCost += cost;
@@ -6753,14 +6772,14 @@ bool PlayerbotAI::Talent(Creature* trainer)
 {
     if (!(m_bot->resetTalents()))
     {
-        WorldPacket* const packet = new WorldPacket(MSG_TALENT_WIPE_CONFIRM, 8 + 4);    //you do not have any talent
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(MSG_TALENT_WIPE_CONFIRM, 8 + 4));    //you do not have any talent
         *packet << uint64(0);
         *packet << uint32(0);
-        m_bot->GetSession()->QueuePacket(packet);
+        m_bot->GetSession()->QueuePacket(std::move(packet));
         return false;
     }
 
-    trainer->CastSpell(m_bot, 14867, true);                  //spell: "Untalent Visual Effect"
+    trainer->CastSpell(m_bot, 14867, TRIGGERED_OLD_TRIGGERED);                  //spell: "Untalent Visual Effect"
     return true;
 }
 
@@ -6802,11 +6821,11 @@ void PlayerbotAI::Repair(const uint32 itemid, Creature* rCreature)
 
     ObjectGuid itemGuid = (rItem) ? rItem->GetObjectGuid() : ObjectGuid();
 
-    WorldPacket* const packet = new WorldPacket(CMSG_REPAIR_ITEM, 8 + 8 + 1);
+    std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_REPAIR_ITEM, 8 + 8 + 1));
     *packet << rCreature->GetObjectGuid();  // repair npc guid
     *packet << itemGuid; // if item specified then repair this, else repair all
     *packet << UseGuild;  // guildbank yes=1 no=0
-    m_bot->GetSession()->QueuePacket(packet);  // queue the packet to get around race condition
+    m_bot->GetSession()->QueuePacket(std::move(packet));  // queue the packet to get around race condition
 }
 
 bool PlayerbotAI::RemoveAuction(const uint32 auctionid)
@@ -7064,7 +7083,7 @@ bool PlayerbotAI::AddQuest(const uint32 entry, WorldObject * questgiver)
                 }
 
         if (qInfo->GetSrcSpell() > 0)
-            m_bot->CastSpell(m_bot, qInfo->GetSrcSpell(), true);
+            m_bot->CastSpell(m_bot, qInfo->GetSrcSpell(), TRIGGERED_OLD_TRIGGERED);
 
         TellMaster(out.str());
         return true;
@@ -7149,14 +7168,14 @@ void PlayerbotAI::AddAuction(const uint32 itemid, Creature* aCreature)
         out << " with " << aCreature->GetCreatureInfo()->Name;
         TellMaster(out.str().c_str());
 
-        WorldPacket* const packet = new WorldPacket(CMSG_AUCTION_SELL_ITEM, 8 + 8 + 4 + 4 + 4);
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_AUCTION_SELL_ITEM, 8 + 8 + 4 + 4 + 4));
         *packet << aCreature->GetObjectGuid();     // auctioneer guid
         *packet << aItem->GetObjectGuid();         // item guid
         *packet << uint32((min < max) ? min : max);  // starting bid
         *packet << uint32((max > min) ? max : min);  // buyout
         *packet << uint32(etime);  // auction duration
 
-        m_bot->GetSession()->QueuePacket(packet);  // queue the packet to get around race condition
+        m_bot->GetSession()->QueuePacket(std::move(packet));  // queue the packet to get around race condition
     }
 }
 
@@ -7206,10 +7225,29 @@ void PlayerbotAI::Sell(const uint32 itemid)
     {
         std::ostringstream report;
 
-        uint32 cost = pItem->GetCount() * pItem->GetProto()->SellPrice;
-        m_bot->ModifyMoney(cost);
+        ItemPrototype const* pProto = pItem->GetProto();
+        if (!pProto)
+            return;
+
+        uint32 cost = pItem->GetProto()->SellPrice * pItem->GetCount();
+
+        // handle spell charge if any
+        for (auto i = 0; i < MAX_ITEM_PROTO_SPELLS; ++i)
+        {
+            auto const &spell = pProto->Spells[i];
+
+            // if spell charges for this item are negative, it means that the item should be destroyed once the charges are consumed.
+            // it also means that the value of this item is relative to how many charges are remaining.
+            if (spell.SpellId != 0 && spell.SpellCharges < 0)
+            {
+                auto const multiplier = static_cast<float>(pItem->GetSpellCharges(i)) / spell.SpellCharges;
+                cost *= multiplier;
+                break;
+            }
+        }
         m_bot->MoveItemFromInventory(pItem->GetBagSlot(), pItem->GetSlot(), true);
-        m_bot->AddItemToBuyBackSlot(pItem);
+        m_bot->AddItemToBuyBackSlot(pItem, cost);
+        m_bot->ModifyMoney(cost);
 
         report << "Sold ";
         MakeItemLink(pItem, report, true);
@@ -8513,7 +8551,7 @@ void PlayerbotAI::_HandleCommandTalent(std::string &text, Player &fromPlayer)
                     WorldPacket data(SMSG_PLAY_SPELL_IMPACT, 12);            // visual effect on player
                     data << m_bot->GetObjectGuid();
                     data << uint32(0x016A);                                 // index from SpellVisualKit.dbc
-                    GetMaster()->GetSession()->SendPacket(&data);
+                    GetMaster()->GetSession()->SendPacket(data);
 
                     InspectUpdate();
                 }
@@ -9418,9 +9456,9 @@ void PlayerbotAI::_HandleCommandPet(std::string &text, Player &fromPlayer)
     if (ExtractCommand("abandon", text))
     {
         // abandon pet
-        WorldPacket* const packet = new WorldPacket(CMSG_PET_ABANDON, 8);
+        std::unique_ptr<WorldPacket> packet(new WorldPacket(CMSG_PET_ABANDON, 8));
         *packet << pet->GetObjectGuid();
-        m_bot->GetSession()->QueuePacket(packet);
+        m_bot->GetSession()->QueuePacket(std::move(packet));
 
     }
     else if (ExtractCommand("react", text))
@@ -9804,18 +9842,18 @@ void PlayerbotAI::_HandleCommandSkill(std::string &text, Player &fromPlayer)
                         WorldPacket data(SMSG_PLAY_SPELL_VISUAL, 12);           // visual effect on trainer
                         data << ObjectGuid(fromPlayer.GetSelectionGuid());
                         data << uint32(0xB3);                                   // index from SpellVisualKit.dbc
-                        GetMaster()->GetSession()->SendPacket(&data);
+                        GetMaster()->GetSession()->SendPacket(data);
 
                         data.Initialize(SMSG_PLAY_SPELL_IMPACT, 12);            // visual effect on player
                         data << m_bot->GetObjectGuid();
                         data << uint32(0x016A);                                 // index from SpellVisualKit.dbc
-                        GetMaster()->GetSession()->SendPacket(&data);
+                        GetMaster()->GetSession()->SendPacket(data);
                     }
 
                     WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, 12);
                     data << ObjectGuid(fromPlayer.GetSelectionGuid());
                     data << uint32(spellId);                                // should be same as in packet from client
-                    GetMaster()->GetSession()->SendPacket(&data);
+                    GetMaster()->GetSession()->SendPacket(data);
                     MakeSpellLink(pSpellInfo, msg);
                     msg << " ";
                     msg << Cash(cost) << " ";
@@ -9857,18 +9895,18 @@ void PlayerbotAI::_HandleCommandSkill(std::string &text, Player &fromPlayer)
                         WorldPacket data(SMSG_PLAY_SPELL_VISUAL, 12);           // visual effect on trainer
                         data << ObjectGuid(fromPlayer.GetSelectionGuid());
                         data << uint32(0xB3);                                   // index from SpellVisualKit.dbc
-                        GetMaster()->GetSession()->SendPacket(&data);
+                        GetMaster()->GetSession()->SendPacket(data);
 
                         data.Initialize(SMSG_PLAY_SPELL_IMPACT, 12);            // visual effect on player
                         data << m_bot->GetObjectGuid();
                         data << uint32(0x016A);                                 // index from SpellVisualKit.dbc
-                        GetMaster()->GetSession()->SendPacket(&data);
+                        GetMaster()->GetSession()->SendPacket(data);
                     }
 
                     WorldPacket data(SMSG_TRAINER_BUY_SUCCEEDED, 12);
                     data << ObjectGuid(fromPlayer.GetSelectionGuid());
                     data << uint32(spellId);                                // should be same as in packet from client
-                    GetMaster()->GetSession()->SendPacket(&data);
+                    GetMaster()->GetSession()->SendPacket(data);
                     MakeSpellLink(pSpellInfo, msg);
                     msg << " ";
                     msg << Cash(cost) << " ";

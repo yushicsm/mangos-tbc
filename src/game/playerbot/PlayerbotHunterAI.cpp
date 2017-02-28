@@ -355,7 +355,7 @@ void PlayerbotHunterAI::DoNonCombatActions()
                         int32 benefit = pet->GetCurrentFoodBenefitLevel(pItemProto->ItemLevel)*15; // nutritional value of food
                         DEBUG_LOG("FEED_PET benefit (%i)",benefit);
                         m_bot->DestroyItemCount(pItem, count, true); // remove item from inventory
-                        m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, true); // feed pet
+                        m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED); // feed pet
                         ai->TellMaster("feeding pet.");
                         ai->SetIgnoreUpdateTime(10);
                         return;
@@ -383,7 +383,7 @@ void PlayerbotHunterAI::DoNonCombatActions()
                                 uint32 count = 1; // number of items used
                                 int32 benefit = pet->GetCurrentFoodBenefitLevel(pItemProto->ItemLevel)*15; // nutritional value of food
                                 m_bot->DestroyItemCount(pItem, count, true); // remove item from inventory
-                                m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, true); // feed pet
+                                m_bot->CastCustomSpell(m_bot, PET_FEED, &benefit, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED); // feed pet
                                 ai->TellMaster("feeding pet.");
                                 ai->SetIgnoreUpdateTime(10);
                                 return;
