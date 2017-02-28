@@ -163,7 +163,7 @@ void PlayerbotHunterAI::DoNextCombatManeuver(Unit *pTarget)
 
             m_bot->setAttackTimer(RANGED_ATTACK,500);
 
-            const SpellEntry* spellInfo = sSpellStore.LookupEntry(AUTO_SHOT);
+            const SpellEntry* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(AUTO_SHOT);
             if (!spellInfo)
                 return;
 
