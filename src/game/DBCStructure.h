@@ -282,6 +282,18 @@ struct CreatureTypeEntry
     // uint32    no_expirience;                             // 18       m_flags
 };
 
+struct DungeonEncounterEntry
+{
+    uint32 Id;                                              // 0        m_ID
+    uint32 mapId;                                           // 1        m_mapID
+    uint32 Difficulty;                                      // 2        m_difficulty
+    uint32 encounterData;                                   // 3        m_orderIndex
+    uint32 encounterIndex;                                  // 4        m_Bit
+    char*  encounterName[16];                               // 5-20     m_name_lang
+    uint32 nameLangFlags;                                   // 21       m_name_lang_flags
+    uint32 spellIconID;                                     // 22       m_spellIconID
+};
+
 struct DurabilityCostsEntry
 {
     uint32    Itemlvl;                                      // 0        m_ID
@@ -622,14 +634,6 @@ struct MapEntry
     bool SupportsHeroicMode() const { return resetTimeHeroic && !resetTimeRaid; }
     bool HasResetTime() const { return resetTimeHeroic || resetTimeRaid; }
 
-    bool IsMountAllowed() const
-    {
-        return !IsDungeon() ||
-               MapID == 209 || MapID == 269 || MapID == 309 || // TanarisInstance, CavernsOfTime, Zul'gurub
-               MapID == 509 || MapID == 534 || MapID == 560 || // AhnQiraj, HyjalPast, HillsbradPast
-               MapID == 568 || MapID == 580;                // ZulAman, Sunwell Plateau
-    }
-
     bool IsContinent() const
     {
         return MapID == 0 || MapID == 1 || MapID == 530;
@@ -733,6 +737,7 @@ struct ClassFamilyMask
     bool Empty() const { return Flags == 0; }
     bool operator!() const { return Empty(); }
     operator void const* () const { return Empty() ? nullptr : this; } // for allow normal use in if(mask)
+    bool operator== (const ClassFamilyMask &another) const { return (Flags == another.Flags); }
 
     bool IsFitToFamilyMask(uint64 familyFlags) const { return !!(Flags & familyFlags); }
     bool IsFitToFamilyMask(ClassFamilyMask const& mask) const { return !!(Flags & mask.Flags); }
@@ -826,7 +831,7 @@ struct SpellEntry
         // uint32    SpellVisual2;                          // 123 not used
         uint32    SpellIconID;                              // 124      m_spellIconID
         uint32    activeIconID;                             // 125      m_activeIconID
-        // uint32    spellPriority;                         // 126      m_spellPriority not used
+        uint32    spellPriority;                            // 126      m_spellPriority not used
         char*     SpellName[16];                            // 127-142  m_name_lang
         // uint32    SpellNameFlag;                         // 143      m_name_flag not used
         char*     Rank[16];                                 // 144-159  m_nameSubtext_lang
@@ -852,6 +857,7 @@ struct SpellEntry
         uint32    TotemCategory[MAX_SPELL_TOTEM_CATEGORIES];// 212-213  m_requiredTotemCategoryID
         uint32    AreaId;                                   // 214
         uint32    SchoolMask;                               // 215      m_schoolMask
+        uint32    IsServerSide;
 
         // helpers
         int32 CalculateSimpleValue(SpellEffectIndex eff) const { return EffectBasePoints[eff] + int32(EffectBaseDice[eff]); }
@@ -1137,8 +1143,18 @@ struct WorldSafeLocsEntry
 #pragma pack(pop)
 #endif
 
+struct ItemCategorySpellPair
+{
+    uint32 spellId;
+    uint32 itemId;
+    ItemCategorySpellPair(uint32 _spellId, uint32 _itemId) : spellId(_spellId), itemId(_itemId) {}
+    bool operator <(ItemCategorySpellPair const &pair) const { return spellId == pair.spellId ? itemId < pair.itemId : spellId < pair.spellId; }
+};
+
+typedef std::set<ItemCategorySpellPair> ItemSpellCategorySet;
+typedef std::map<uint32, ItemSpellCategorySet > ItemSpellCategoryStore;
 typedef std::set<uint32> SpellCategorySet;
-typedef std::map<uint32, SpellCategorySet > SpellCategoryStore;
+typedef std::map<uint32, SpellCategorySet> SpellCategoryStore;
 typedef std::set<uint32> PetFamilySpellsSet;
 typedef std::map<uint32, PetFamilySpellsSet > PetFamilySpellsStore;
 

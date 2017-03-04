@@ -28,6 +28,8 @@
 #include "Player.h"
 #include "Unit.h"
 
+#include <memory>
+
 namespace MaNGOS
 {
     struct VisibleNotifier
@@ -55,19 +57,19 @@ namespace MaNGOS
     struct MessageDeliverer
     {
         Player const& i_player;
-        WorldPacket* i_message;
+        WorldPacket const& i_message;
         bool i_toSelf;
-        MessageDeliverer(Player const& pl, WorldPacket* msg, bool to_self) : i_player(pl), i_message(msg), i_toSelf(to_self) {}
+        MessageDeliverer(Player const& pl, WorldPacket const& msg, bool to_self) : i_player(pl), i_message(msg), i_toSelf(to_self) {}
         void Visit(CameraMapType& m);
         template<class SKIP> void Visit(GridRefManager<SKIP>&) {}
     };
 
     struct MessageDelivererExcept
     {
-        WorldPacket*  i_message;
+        WorldPacket const& i_message;
         Player const* i_skipped_receiver;
 
-        MessageDelivererExcept(WorldPacket* msg, Player const* skipped)
+        MessageDelivererExcept(WorldPacket const& msg, Player const* skipped)
             : i_message(msg), i_skipped_receiver(skipped) {}
 
         void Visit(CameraMapType& m);
@@ -76,8 +78,8 @@ namespace MaNGOS
 
     struct ObjectMessageDeliverer
     {
-        WorldPacket* i_message;
-        explicit ObjectMessageDeliverer(WorldPacket* msg) : i_message(msg) {}
+        WorldPacket const& i_message;
+        explicit ObjectMessageDeliverer(WorldPacket const& msg) : i_message(msg) {}
         void Visit(CameraMapType& m);
         template<class SKIP> void Visit(GridRefManager<SKIP>&) {}
     };
@@ -85,12 +87,12 @@ namespace MaNGOS
     struct MessageDistDeliverer
     {
         Player const& i_player;
-        WorldPacket* i_message;
+        WorldPacket const& i_message;
         bool i_toSelf;
         bool i_ownTeamOnly;
         float i_dist;
 
-        MessageDistDeliverer(Player const& pl, WorldPacket* msg, float dist, bool to_self, bool ownTeamOnly)
+        MessageDistDeliverer(Player const& pl, WorldPacket const& msg, float dist, bool to_self, bool ownTeamOnly)
             : i_player(pl), i_message(msg), i_toSelf(to_self), i_ownTeamOnly(ownTeamOnly), i_dist(dist) {}
         void Visit(CameraMapType& m);
         template<class SKIP> void Visit(GridRefManager<SKIP>&) {}
@@ -99,9 +101,9 @@ namespace MaNGOS
     struct ObjectMessageDistDeliverer
     {
         WorldObject const& i_object;
-        WorldPacket* i_message;
+        WorldPacket const& i_message;
         float i_dist;
-        ObjectMessageDistDeliverer(WorldObject const& obj, WorldPacket* msg, float dist) : i_object(obj), i_message(msg), i_dist(dist) {}
+        ObjectMessageDistDeliverer(WorldObject const& obj, WorldPacket const& msg, float dist) : i_object(obj), i_message(msg), i_dist(dist) {}
         void Visit(CameraMapType& m);
         template<class SKIP> void Visit(GridRefManager<SKIP>&) {}
     };
@@ -1012,26 +1014,32 @@ namespace MaNGOS
     {
         public:
             NearestCreatureEntryWithLiveStateInObjectRangeCheck(WorldObject const& obj, uint32 entry, bool onlyAlive, bool onlyDead, float range, bool excludeSelf = false)
-                : i_obj(obj), i_entry(entry), i_onlyAlive(onlyAlive), i_onlyDead(onlyDead), i_excludeSelf(excludeSelf), i_range(range) {}
+                : i_obj(obj), i_entry(entry), i_range(range), i_onlyAlive(onlyAlive), i_onlyDead(onlyDead), i_excludeSelf(excludeSelf), i_foundOutOfRange(false) {}
             WorldObject const& GetFocusObject() const { return i_obj; }
             bool operator()(Creature* u)
             {
-                if (u->GetEntry() == i_entry && ((i_onlyAlive && u->isAlive()) || (i_onlyDead && u->IsCorpse()) || (!i_onlyAlive && !i_onlyDead))
-                        && (!i_excludeSelf || &i_obj != u) && i_obj.IsWithinDistInMap(u, i_range))
+                if (u->GetEntry() == i_entry && ((i_onlyAlive && u->isAlive()) || (i_onlyDead && u->IsCorpse()) || (!i_onlyAlive && !i_onlyDead)) && (!i_excludeSelf || (&i_obj != u)))
                 {
-                    i_range = i_obj.GetDistance(u);         // use found unit range as new range limit for next check
-                    return true;
+                    if (i_obj.IsWithinDistInMap(u, i_range))
+                    {
+                        i_range = i_obj.GetDistance(u);         // use found unit range as new range limit for next check
+                        return true;
+                    }
+                    else
+                        i_foundOutOfRange = true;
                 }
                 return false;
             }
             float GetLastRange() const { return i_range; }
+            float FoundOutOfRange() const { return i_foundOutOfRange; }
         private:
             WorldObject const& i_obj;
             uint32 i_entry;
+            float  i_range;
             bool   i_onlyAlive;
             bool   i_onlyDead;
             bool   i_excludeSelf;
-            float  i_range;
+            bool   i_foundOutOfRange;
 
             // prevent clone this object
             NearestCreatureEntryWithLiveStateInObjectRangeCheck(NearestCreatureEntryWithLiveStateInObjectRangeCheck const&);
@@ -1119,16 +1127,11 @@ namespace MaNGOS
         public:
             explicit LocalizedPacketDo(Builder& builder) : i_builder(builder) {}
 
-            ~LocalizedPacketDo()
-            {
-                for (size_t i = 0; i < i_data_cache.size(); ++i)
-                    delete i_data_cache[i];
-            }
             void operator()(Player* p);
 
         private:
             Builder& i_builder;
-            std::vector<WorldPacket*> i_data_cache;         // 0 = default, i => i-1 locale index
+            std::vector<std::unique_ptr<WorldPacket>> i_data_cache;         // 0 = default, i => i-1 locale index
     };
 
     // Prepare using Builder localized packets with caching and send to player
@@ -1136,15 +1139,9 @@ namespace MaNGOS
     class LocalizedPacketListDo
     {
         public:
-            typedef std::vector<WorldPacket*> WorldPacketList;
+            typedef std::vector<std::unique_ptr<WorldPacket>> WorldPacketList;
             explicit LocalizedPacketListDo(Builder& builder) : i_builder(builder) {}
 
-            ~LocalizedPacketListDo()
-            {
-                for (size_t i = 0; i < i_data_cache.size(); ++i)
-                    for (size_t j = 0; j < i_data_cache[i].size(); ++j)
-                        delete i_data_cache[i][j];
-            }
             void operator()(Player* p);
 
         private:

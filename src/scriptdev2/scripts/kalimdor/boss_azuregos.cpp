@@ -16,8 +16,8 @@
 
 /* ScriptData
 SDName: Boss_Azuregos
-SD%Complete: 90
-SDComment: Spell reflect not effecting dots (Core problem)
+SD%Complete: 99
+SDComment: Enrage is to be checked
 SDCategory: Azshara
 EndScriptData */
 
@@ -65,7 +65,7 @@ struct boss_azuregosAI : public ScriptedAI
     {
         // Mark killed players with Mark of Frost
         if (pVictim->GetTypeId() == TYPEID_PLAYER)
-            pVictim->CastSpell(pVictim, SPELL_MARK_OF_FROST_PLAYER, true, nullptr, nullptr, m_creature->GetObjectGuid());
+            pVictim->CastSpell(pVictim, SPELL_MARK_OF_FROST_PLAYER, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, m_creature->GetObjectGuid());
     }
 
     void Aggro(Unit* /*pWho*/) override
@@ -85,7 +85,7 @@ struct boss_azuregosAI : public ScriptedAI
             if (DoCastSpellIfCan(m_creature, SPELL_ARCANE_VACUUM) == CAST_OK)
             {
                 DoScriptText(SAY_TELEPORT, m_creature);
-                m_uiTeleportTimer = 30000;
+                m_uiTeleportTimer = urand(20000, 30000);
             }
         }
         else
@@ -104,7 +104,7 @@ struct boss_azuregosAI : public ScriptedAI
         if (m_uiBreathTimer < uiDiff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_FROST_BREATH) == CAST_OK)
-                m_uiBreathTimer = urand(10000, 15000);
+                m_uiBreathTimer = urand(10000, 25000);
         }
         else
             m_uiBreathTimer -= uiDiff;
@@ -112,10 +112,10 @@ struct boss_azuregosAI : public ScriptedAI
         // Mana Storm Timer
         if (m_uiManaStormTimer < uiDiff)
         {
-            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_NEAREST_BY, 0))
             {
                 if (DoCastSpellIfCan(pTarget, SPELL_MANA_STORM) == CAST_OK)
-                    m_uiManaStormTimer = urand(7500, 12500);
+                    m_uiManaStormTimer = urand(18000, 35000);
             }
         }
         else

@@ -81,7 +81,7 @@ void instance_blackrock_depths::OnCreatureCreate(Creature* pCreature)
             if (std::abs(pCreature->GetPositionZ() - aVaultPositions[2]) > 1.0f || !pCreature->IsWithinDist2d(aVaultPositions[0], aVaultPositions[1], 20.0f))
                 break;
             // Golems in Relict Vault need to have a stoned aura, set manually to prevent reapply when reached home
-            pCreature->CastSpell(pCreature, SPELL_STONED, true);
+            pCreature->CastSpell(pCreature, SPELL_STONED, TRIGGERED_OLD_TRIGGERED);
             // Store the Relict Vault Golems into m_sVaultNpcGuids
         case NPC_WATCHER_DOOMGRIP:
             m_sVaultNpcGuids.insert(pCreature->GetObjectGuid());
@@ -107,8 +107,10 @@ void instance_blackrock_depths::OnCreatureCreate(Creature* pCreature)
         case NPC_HAMMERED_PATRON:
             m_sBarPatronNpcGuids.insert(pCreature->GetObjectGuid());
             if (m_auiEncounter[11] == DONE)
+            {
                 pCreature->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
                 pCreature->SetStandState(UNIT_STAND_STATE_STAND);
+            }
             break;
         case NPC_PRIVATE_ROCKNOT:
         case NPC_MISTRESS_NAGMARA:
@@ -673,7 +675,7 @@ void instance_blackrock_depths::HandleBarPatrons(uint8 uiEventType)
             }
             if (Creature* pNagmara = GetSingleCreatureFromStorage(NPC_MISTRESS_NAGMARA))
             {
-                pNagmara->CastSpell(pNagmara, SPELL_NAGMARA_VANISH, true);
+                pNagmara->CastSpell(pNagmara, SPELL_NAGMARA_VANISH, TRIGGERED_OLD_TRIGGERED);
                 pNagmara->ForcedDespawn();
             }
             return;

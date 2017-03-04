@@ -69,6 +69,7 @@ struct AreaTrigger
     float  target_Y;
     float  target_Z;
     float  target_Orientation;
+    uint32 conditionId;
 
     // Operators
     bool IsMinimal() const
@@ -278,6 +279,19 @@ struct PetCreateSpellEntry
     uint32 spellid[4];
 };
 
+struct DungeonEncounter
+{
+    DungeonEncounter(DungeonEncounterEntry const* _dbcEntry, EncounterCreditType _creditType, uint32 _creditEntry, uint32 _lastEncounterDungeon)
+        : dbcEntry(_dbcEntry), creditType(_creditType), creditEntry(_creditEntry), lastEncounterDungeon(_lastEncounterDungeon) { }
+    DungeonEncounterEntry const* dbcEntry;
+    EncounterCreditType creditType;
+    uint32 creditEntry;
+    uint32 lastEncounterDungeon;
+};
+
+typedef std::multimap<uint32, DungeonEncounter const*> DungeonEncounterMap;
+typedef std::pair<DungeonEncounterMap::const_iterator, DungeonEncounterMap::const_iterator> DungeonEncounterMapBounds;
+
 struct GraveYardData
 {
     uint32 safeLocId;
@@ -328,7 +342,7 @@ enum ConditionType
     // True if player has skill skill_id and skill less than (and not equal) skill_value (for skill_value > 1)
     // If skill_value == 1, then true if player has not skill skill_id
     CONDITION_REPUTATION_RANK_MAX   = 30,                   // faction_id   max_rank
-    CONDITION_RESERVED_3            = 31,                   // reserved for 3.x and later
+    CONDITION_COMPLETED_ENCOUNTER   = 31,                   // encounter_id encounter_id2       encounter_id[2] = DungeonEncounter(dbc).id (if value2 provided it will return value1 OR value2)
     CONDITION_SOURCE_AURA           = 32,                   // spell_id     effindex (returns true if the source of the condition check has aura of spell_id, effIndex)
     CONDITION_LAST_WAYPOINT         = 33,                   // waypointId   0 = exact, 1: wp <= waypointId, 2: wp > waypointId  Use to check what waypoint was last reached
     CONDITION_RESERVED_4            = 34,                   // reserved for 3.x and later
@@ -340,16 +354,19 @@ enum ConditionType
 
 enum ConditionSource                                        // From where was the condition called?
 {
-    CONDITION_FROM_LOOT             = 0,                    // Used to check a *_loot_template entry
-    CONDITION_FROM_REFERING_LOOT    = 1,                    // Used to check a entry refering to a reference_loot_template entry
-    CONDITION_FROM_GOSSIP_MENU      = 2,                    // Used to check a gossip menu menu-text
-    CONDITION_FROM_GOSSIP_OPTION    = 3,                    // Used to check a gossip menu option-item
-    CONDITION_FROM_EVENTAI          = 4,                    // Used to check EventAI Event "On Receive Emote"
-    CONDITION_FROM_HARDCODED        = 5,                    // Used to check a hardcoded event - not actually a condition
-    CONDITION_FROM_VENDOR           = 6,                    // Used to check a condition from a vendor
-    CONDITION_FROM_SPELL_AREA       = 7,                    // Used to check a condition from spell_area table
-    CONDITION_FROM_RESERVED_1       = 8,                    // reserved for 3.x and later
-    CONDITION_FROM_DBSCRIPTS        = 9,                    // Used to check a condition from DB Scripts Engine
+    CONDITION_FROM_LOOT                 = 0,                    // Used to check a *_loot_template entry
+    CONDITION_FROM_REFERING_LOOT        = 1,                    // Used to check a entry refering to a reference_loot_template entry
+    CONDITION_FROM_GOSSIP_MENU          = 2,                    // Used to check a gossip menu menu-text
+    CONDITION_FROM_GOSSIP_OPTION        = 3,                    // Used to check a gossip menu option-item
+    CONDITION_FROM_EVENTAI              = 4,                    // Used to check EventAI Event "On Receive Emote"
+    CONDITION_FROM_HARDCODED            = 5,                    // Used to check a hardcoded event - not actually a condition
+    CONDITION_FROM_VENDOR               = 6,                    // Used to check a condition from a vendor
+    CONDITION_FROM_SPELL_AREA           = 7,                    // Used to check a condition from spell_area table
+    CONDITION_FROM_RESERVED_1           = 8,                    // reserved for 3.x and later
+    CONDITION_FROM_DBSCRIPTS            = 9,                    // Used to check a condition from DB Scripts Engine
+    CONDITION_FROM_TRAINER              = 10,                   // Used to check a condition from npc_trainer and npc_trainer_template
+    CONDITION_FROM_AREATRIGGER_TELEPORT = 11,                   // Used to check a condition from areatrigger_teleport
+    CONDITION_FROM_QUEST                = 12,                   // Used to check a condition from quest_template
 };
 
 class PlayerCondition
@@ -465,6 +482,8 @@ class ObjectMgr
         Group* GetGroupById(uint32 id) const;
         void AddGroup(Group* group);
         void RemoveGroup(Group* group);
+        GroupMap::iterator GetGroupMapBegin() { return mGroupMap.begin(); }
+        GroupMap::iterator GetGroupMapEnd() { return mGroupMap.end(); }
 
         ArenaTeam* GetArenaTeamById(uint32 arenateamid) const;
         ArenaTeam* GetArenaTeamByName(const std::string& arenateamname) const;
@@ -502,9 +521,9 @@ class ObjectMgr
         uint32 GetPlayerAccountIdByGUID(ObjectGuid guid) const;
         uint32 GetPlayerAccountIdByPlayerName(const std::string& name) const;
 
-        uint32 GetNearestTaxiNode(float x, float y, float z, uint32 mapid, Team team);
-        void GetTaxiPath(uint32 source, uint32 destination, uint32& path, uint32& cost);
-        uint32 GetTaxiMountDisplayId(uint32 id, Team team, bool allowed_alt_team = false);
+        uint32 GetNearestTaxiNode(float x, float y, float z, uint32 mapid, Team team) const;
+        void GetTaxiPath(uint32 source, uint32 destination, uint32& path, uint32& cost) const;
+        uint32 GetTaxiMountDisplayId(uint32 id, Team team, bool allowed_alt_team = false) const;
 
         Quest const* GetQuestTemplate(uint32 quest_id) const
         {
@@ -641,6 +660,7 @@ class ObjectMgr
         void LoadPageTextLocales();
         void LoadGossipMenuItemsLocales();
         void LoadPointOfInterestLocales();
+        void LoadInstanceEncounters();
         void LoadInstanceTemplate();
         void LoadWorldTemplate();
         void LoadConditions();
@@ -678,6 +698,8 @@ class ObjectMgr
         void LoadNpcGossips();
 
         void LoadGossipMenus();
+
+        void LoadDungeonEncounters();
 
         void LoadVendorTemplates();
         void LoadVendors() { LoadVendors("npc_vendor", false); }
@@ -979,6 +1001,11 @@ class ObjectMgr
             return m_ItemRequiredTarget.equal_range(uiItemEntry);
         }
 
+        DungeonEncounterMapBounds GetDungeonEncounterBounds(uint32 creditEntry) const
+        {
+            return m_DungeonEncounters.equal_range(creditEntry);
+        }
+
         GossipMenusMapBounds GetGossipMenusMapBounds(uint32 uiMenuId) const
         {
             return m_mGossipMenusMap.equal_range(uiMenuId);
@@ -1161,6 +1188,7 @@ class ObjectMgr
         std::map<int32 /*minEntryOfBracket*/, uint32 /*count*/> m_loadedStringCount;
         GossipMenuItemsLocaleMap mGossipMenuItemsLocaleMap;
         PointOfInterestLocaleMap mPointOfInterestLocaleMap;
+        DungeonEncounterMap m_DungeonEncounters;
 
         CreatureModelRaceMap    m_mCreatureModelRaceMap;
 

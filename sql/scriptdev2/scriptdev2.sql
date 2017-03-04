@@ -126,6 +126,7 @@ UPDATE item_template SET ScriptName='item_arcane_charges' WHERE entry=34475;
 UPDATE item_template SET ScriptName='item_flying_machine' WHERE entry IN (34060,34061);
 UPDATE item_template SET ScriptName='item_gor_dreks_ointment' WHERE entry=30175;
 UPDATE item_template SET ScriptName='item_petrov_cluster_bombs' WHERE entry=33098;
+UPDATE item_template SET ScriptName='item_orb_of_draconic_energy' WHERE entry=12300;
 
 /* NPC (usually creatures to be found in more than one specific zone) */
 UPDATE creature_template SET ScriptName='npc_air_force_bots' WHERE entry IN (2614, 2615, 21974, 21993, 21996, 21997, 21999, 22001, 22002, 22003, 22063, 22065, 22066, 22068, 22069, 22070, 22071, 22078, 22079, 22080, 22086, 22087, 22088, 22090, 22124, 22125, 22126);
@@ -217,6 +218,7 @@ UPDATE creature_template SET ScriptName='npc_depth_charge' WHERE entry=23025;
 UPDATE gameobject_template SET ScriptName='go_southfury_moonstone' WHERE entry=185566;
 UPDATE creature_template SET ScriptName='mobs_spitelashes' WHERE entry IN (6190,6193,6194,6195,6196);
 UPDATE creature_template SET ScriptName='npc_loramus_thalipedes' WHERE entry=7783;
+UPDATE creature_template SET ScriptName='npc_felhound_tracker' WHERE entry=8668;
 
 /* AZUREMYST ISLE */
 UPDATE creature_template SET ScriptName='npc_draenei_survivor' WHERE entry=16483;
@@ -231,6 +233,7 @@ UPDATE creature_template SET ScriptName='npc_twiggy_flathead' WHERE entry=6248;
 DELETE FROM scripted_areatrigger WHERE entry=522;
 INSERT INTO scripted_areatrigger VALUES (522,'at_twiggy_flathead');
 UPDATE creature_template SET ScriptName='npc_wizzlecranks_shredder' WHERE entry=3439;
+UPDATE creature_template SET ScriptName='npc_gallywix' WHERE entry=7288;
 
 /* BLACK TEMPLE */
 UPDATE instance_template SET ScriptName='instance_black_temple' WHERE map=564;
@@ -440,6 +443,10 @@ UPDATE creature_template SET ScriptName='npc_rigger_gizelton' WHERE entry=11626;
 
 /* DIRE MAUL */
 UPDATE instance_template SET ScriptName='instance_dire_maul' WHERE map=429;
+DELETE FROM scripted_event_id WHERE id IN (8420,8428);
+INSERT INTO scripted_event_id VALUES
+(8420,'event_spells_warlock_dreadsteed'),
+(8428,'event_spells_warlock_dreadsteed');
 
 /* DUN MOROGH */
 
@@ -595,7 +602,6 @@ UPDATE creature_template SET ScriptName='npc_fiendish_portal' WHERE entry=17265;
 UPDATE creature_template SET ScriptName='npc_shade_of_aran_blizzard' WHERE entry=17161;
 UPDATE creature_template SET ScriptName='npc_netherspite_portal' WHERE entry IN (17367,17368,17369);
 UPDATE creature_template SET ScriptName='npc_infernal_target' WHERE entry=17644;
-UPDATE creature_template SET ScriptName='npc_berthold' WHERE entry=16153;
 UPDATE creature_template SET ScriptName='npc_barnes' WHERE entry=16812;
 UPDATE creature_template SET ScriptName='npc_grandmother' WHERE entry=17603;
 UPDATE creature_template SET ScriptName='npc_image_of_medivh' WHERE entry=17651;
@@ -705,6 +711,7 @@ UPDATE creature_template SET ScriptName='boss_feugen' WHERE entry=15930;
 UPDATE creature_template SET ScriptName='npc_tesla_coil' WHERE entry=16218;
 UPDATE creature_template SET ScriptName='boss_sapphiron' WHERE entry=15989;
 UPDATE gameobject_template SET ScriptName='go_sapphiron_birth' WHERE entry=181356;
+UPDATE gameobject_template SET ScriptName='go_anub_door' WHERE entry=181126;
 UPDATE creature_template SET ScriptName='boss_kelthuzad' WHERE entry=15990;
 
 /* NETHERSTORM */
@@ -1233,14 +1240,14 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 
 (-1000175,'Thank you, mortal.',0,0,11,0,' SAY_JUST_EATEN'),
 
-(-1000176,'The last thing I remember is the ship falling and us getting into the pods. I\'ll go see how I can help. Thank you!',0,0,7,0,'draenei_survivor SAY_HEAL1'),
-(-1000177,'$C, Where am I? Who are you? Oh no! What happened to the ship?',0,0,7,0,'draenei_survivor SAY_HEAL2'),
-(-1000178,'$C You saved me! I owe you a debt that I can never repay. I\'ll go see if I can help the others.',0,0,7,0,'draenei_survivor SAY_HEAL3'),
-(-1000179,'Ugh... what is this place? Is that all that\'s left of the ship over there?',0,0,7,0,'draenei_survivor SAY_HEAL4'),
-(-1000180,'Oh, the pain...',0,0,7,0,'draenei_survivor SAY_HELP1'),
-(-1000181,'Everything hurts, Please make it stop...',0,0,7,0,'draenei_survivor SAY_HELP2'),
-(-1000182,'Ughhh... I hurt. Can you help me?',0,0,7,0,'draenei_survivor SAY_HELP3'),
-(-1000183,'I don\'t know if I can make it, please help me...',0,0,7,0,'draenei_survivor SAY_HELP4'),
+(-1000176,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000177,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000178,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000179,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000180,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000181,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000182,'REUSE ME',0,0,0,0,'REUSE_ME'),
+(-1000183,'REUSE ME',0,0,0,0,'REUSE_ME'),
 
 (-1000184,'Daughter!',0,0,7,5,'cowlen SAY_DAUGHTER'),
 
@@ -1883,8 +1890,8 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 (-1000793,'We shall earn our deaths at the very least!',0,0,0,0,'volcor SAY_AGGRO_2'),
 (-1000794,'Don\'t give up! Fight, to the death!',0,0,0,0,'volcor SAY_AGGRO_3'),
 
-(-1000795,'OK boss, I get back to tree hitting.',0,0,0,0,'lazy peon SAY_AWAKE_1'),
-(-1000796,'Sleepy... so sleepy...',0,0,0,0,'lazy peon SAY_AWAKE_2'),
+(-1000795,'Ow! Ok, I\'ll get back to work, $N!',0,0,1,0,'Lazy Peon SAY_PEON_AWOKEN'),
+(-1000796,'REUSE_ME',0,0,0,0,'REUSE_ME'),
 
 (-1000797,'%s squawks and heads toward Veil Shalas. Hurry and follow!',0,2,0,0,'skywing SAY_SKYWING_START'),
 (-1000798,'%s pauses briefly before the tree and then heads inside.',0,2,0,0,'skywing SAY_SKYWING_TREE_DOWN'),
@@ -2227,7 +2234,18 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 (-1001213,'Get back to Blood Watch. I\'ll see you there...',0,0,0,1,'demolitionist_legoso SAY_ESCORT_COMPLETE_2'),
 
 (-1001214,'%s becomes unstable with brimming energy.',0,2,0,0,'living_flare EMOTE_UNSTABLE'),
-(-1001215,'%s releases its energy, engulfing its surroundings in flames!',0,2,0,0,'living_flare EMOTE_BURST');
+(-1001215,'%s releases its energy, engulfing its surroundings in flames!',0,2,0,0,'living_flare EMOTE_BURST'),
+
+(-1001216,'The last thing I remember is the ship falling and us getting into the pods. I\'ll go see how I can help. Thank you!',0,0,7,0,'draenei_survivor SAY_HEAL1'),
+(-1001217,'Where am I? Who are you? Oh no! What happened to the ship?',0,0,7,0,'draenei_survivor SAY_HEAL2'),
+(-1001218,'$C You saved me! I owe you a debt that I can never repay. I\'ll go see if I can help the others.',0,0,7,0,'draenei_survivor SAY_HEAL3'),
+(-1001219,'Ugh... what is this place? Is that all that\'s left of the ship over there?',0,0,7,0,'draenei_survivor SAY_HEAL4'),
+(-1001220,'Many thanks to you, $c. I''d best get to the crash site and see how I can help out. Until we meet again.',0,0,7,0,'draenei_survivor SAY_HEAL5'),
+(-1001221,'Huh? What happened? Oh... my head feels like it''s going to explode! I''d best get back to the crash site.',0,0,7,0,'draenei_survivor SAY_HEAL6'),
+(-1001222,'Oh, the pain...',0,0,7,0,'draenei_survivor SAY_HELP1'),
+(-1001223,'Everything hurts. Please, make it stop...',0,0,7,0,'draenei_survivor SAY_HELP2'),
+(-1001224,'Ughhh... I hurt. Can you help me?',0,0,7,0,'draenei_survivor SAY_HELP3'),
+(-1001225,'I don''t know if I can make it. Please help me...',0,0,7,0,'draenei_survivor SAY_HELP4');
 
 -- -1 033 000 SHADOWFANG KEEP
 INSERT INTO script_texts (entry,content_default,sound,type,language,emote,comment) VALUES
@@ -3021,21 +3039,21 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 
 -- -1 533 000 NAXXRAMAS
 INSERT INTO script_texts (entry,content_default,sound,type,language,emote,comment) VALUES
-(-1533000,'Ahh... welcome to my parlor.',8788,1,0,0,'anubrekhan SAY_GREET'),
+(-1533000,'Ahh... welcome to my parlor.',8788,1,0,0,'anubrekhan SAY_GREET1'),
 (-1533001,'Just a little taste...',8785,1,0,0,'anubrekhan SAY_AGGRO1'),
 (-1533002,'There is no way out.',8786,1,0,0,'anubrekhan SAY_AGGRO2'),
-(-1533003,'Yes, Run! It makes the blood pump faster!',8787,1,0,0,'anubrekhan SAY_AGGRO3'),
-(-1533004,'I hear little hearts beating. Yesss... beating faster now. Soon the beating will stop.',8790,1,0,0,'anubrekhan SAY_TAUNT1'),
-(-1533005,'Where to go? What to do? So many choices that all end in pain, end in death.',8791,1,0,0,'anubrekhan SAY_TAUNT2'),
-(-1533006,'Which one shall I eat first? So difficult to choose... the all smell so delicious.',8792,1,0,0,'anubrekhan SAY_TAUNT3'),
-(-1533007,'Closer now... tasty morsels. I\'ve been too long without food. Without blood to drink.',8793,1,0,0,'anubrekhan SAY_TAUNT4'),
-(-1533008,'Shh... it will all be over soon.',8789,1,0,0,'anubrekhan SAY_SLAY'),
+(-1533003,'Yes, run! It makes the blood pump faster!',8787,1,0,0,'anubrekhan SAY_AGGRO3'),
+(-1533004,'I hear little hearts beating. Yesss... beating faster now. Soon the beating will stop.',8790,1,0,0,'anubrekhan SAY_GREET2'),
+(-1533005,'Where to go? What to do? So many choices that all end in pain, end in death.',8791,1,0,0,'anubrekhan SAY_GREET3'),
+(-1533006,'Which one shall I eat first? So difficult to choose. They all smell so delicious...',8792,1,0,0,'anubrekhan SAY_GREET4'),
+(-1533007,'Closer now... tasty morsels. I\'ve been too long without food. Without blood to drink.',8793,1,0,0,'anubrekhan SAY_GREET5'),
+(-1533008,'Shhh... it will all be over soon.',8789,1,0,0,'anubrekhan SAY_SLAY'),
 
 (-1533009,'Your old lives, your mortal desires, mean nothing. You are acolytes of the master now, and you will serve the cause without question! The greatest glory is to die in the master\'s service!',8799,1,0,0,'faerlina SAY_GREET'),
 (-1533010,'Slay them in the master\'s name!',8794,1,0,0,'faerlina SAY_AGGRO1'),
-(-1533011,'You cannot hide from me!',8795,1,0,0,'faerlina SAY_AGGRO2'),
-(-1533012,'Kneel before me, worm!',8796,1,0,0,'faerlina SAY_AGGRO3'),
-(-1533013,'Run while you still can!',8797,1,0,0,'faerlina SAY_AGGRO4'),
+(-1533011,'You cannot hide from me!',8795,1,0,0,'faerlina SAY_ENRAGE_1'),
+(-1533012,'Kneel before me, worm!',8796,1,0,0,'faerlina SAY_ENRAGE_2'),
+(-1533013,'Run while you still can!',8797,1,0,0,'faerlina SAY_ENRAGE_3'),
 (-1533014,'You have failed!',8800,1,0,0,'faerlina SAY_SLAY1'),
 (-1533015,'Pathetic wretch!',8801,1,0,0,'faerlina SAY_SLAY2'),
 (-1533016,'The master... will avenge me!',8798,1,0,0,'faerlina SAY_DEATH'),
@@ -3158,15 +3176,15 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,commen
 
 (-1533119,'%s spots a nearby Zombie to devour!',0,3,0,0,'gluth EMOTE_ZOMBIE'),
 
-(-1533120,'Hah hah, I\'m just getting warmed up!',8852,1,0,0,'razuvious SAY_AGGRO1'),
-(-1533121,'Stand and fight!',8853,1,0,0,'razuvious SAY_AGGRO2'),
-(-1533122,'Show me what you\'ve got!',8854,1,0,0,'razuvious SAY_AGGRO3'),
-(-1533123,'Sweep the leg! Do you have a problem with that?',8861,1,0,0,'razuvious SAY_SLAY1'),
-(-1533124,'You should have stayed home!',8862,1,0,0,'razuvious SAY_SLAY2'),
-(-1533125,'Do as I taught you!',8855,1,0,0,'razuvious SAY_COMMAND1'),
-(-1533126,'Show them no mercy!',8856,1,0,0,'razuvious SAY_COMMAND2'),
-(-1533127,'You disappoint me, students!',8858,1,0,0,'razuvious SAY_COMMAND3'),
-(-1533128,'The time for practice is over! Show me what you\'ve learned!',8859,1,0,0,'razuvious SAY_COMMAND4'),
+(-1533120,'Do as I taught you!',8855,1,0,0,'razuvious SAY_AGGRO1'),
+(-1533121,'Show them no mercy!',8856,1,0,0,'razuvious SAY_AGGRO2'),
+(-1533122,'The time for practice is over! Show me what you\'ve learned!',8859,1,0,0,'razuvious SAY_AGGRO3'),
+(-1533123,'Sweep the leg! Do you have a problem with that?',8861,1,0,0,'razuvious SAY_AGGRO4'),
+(-1533124,'You should have stayed home!',8862,1,0,0,'razuvious SAY_SLAY1'),
+(-1533125,'You disappoint me, students!',8858,1,0,0,'razuvious SAY_SLAY2'),
+(-1533126,'Hah hah, I\'m just getting warmed up!',8852,1,0,0,'razuvious SAY_TRIUMPHANT1'),
+(-1533127,'Stand and fight!',8853,1,0,0,'razuvious SAY_TRIUMPHANT2'),
+(-1533128,'Show me what you\'ve got!',8854,1,0,0,'razuvious SAY_TRIUMPHANT3'),
 (-1533129,'An honorable... death...',8860,1,0,0,'razuvious SAY_DEATH'),
 
 (-1533130,'%s summons forth Skeletal Warriors!',0,3,0,0,'noth EMOTE_WARRIOR'),

@@ -3,7 +3,7 @@
 #####################################
 
 [MangosdConf]
-ConfVersion=2015090801
+ConfVersion=2016101401
 
 ###################################################################################################################
 # CONNECTIONS AND DIRECTORIES
@@ -42,7 +42,7 @@ ConfVersion=2015090801
 #	CharacterDatabaseConnections
 #		 Amount of connections to database which will be used for SELECT queries. Maximum 16 connections per database.
 #		 Please, note, for data consistency only one connection for each database is used for transactions and async SELECTs.
-#		 So formula to find out how many connections will be established: X = ¹_connections + 1
+#		 So formula to find out how many connections will be established: X = #_connections + 1
 #		 Default: 1 connection for SELECT statements
 #
 #    MaxPingTime
@@ -186,6 +186,16 @@ SD2ErrorLogFile = "SD2Errors.log"
 #        Disable mmap pathfinding on the listed maps.
 #        List of map ids with delimiter ','
 #
+#    PathFinder.OptimizePath
+#        Use or not path finder path optimization (cut calculated points).
+#                 0  (disable)
+#        Default: 1  (enable)
+#
+#    PathFinder.NormalizeZ
+#        Correct calculated path points Z (height). Increase CPU usage, but fix Z accuracy.
+#        Default: 0  (disable)
+#                 1  (enable)
+#
 #    UpdateUptimeInterval
 #        Update realm uptime period in minutes (for save data in 'uptime' table). Must be > 0
 #        Default: 10 (minutes)
@@ -235,6 +245,8 @@ DetectPosCollision = 1
 TargetPosRecalculateRange = 1.5
 mmap.enabled = 1
 mmap.ignoreMapIds = ""
+PathFinder.OptimizePath = 1
+PathFinder.NormalizeZ = 0
 UpdateUptimeInterval = 10
 MaxCoreStuckTime = 0
 AddonChannel = 1
@@ -635,6 +647,11 @@ LogColors = ""
 #        Default: 0 (not allowed)
 #                 1 (allowed)
 #
+#    Group.OfflineLeaderDelay
+#        A grace period for an offline group leader to reconnect before tranfering leadership to a next suitable member of the group (in secs) 
+#        Default: 300 (5 minutes)
+#                   0 (Do not transfer group leadership)
+#
 #    Guild.EventLogRecordsCount
 #        Count of guild event log records stored in guild_eventlog table
 #        Increase to store more guild events in table, minimum is 100
@@ -791,6 +808,7 @@ Quests.LowLevelHideDiff = 4
 Quests.HighLevelHideDiff = 7
 Quests.Daily.ResetHour = 6
 Quests.IgnoreRaid = 0
+Group.OfflineLeaderDelay = 300
 Guild.EventLogRecordsCount = 100
 Guild.BankEventLogRecordsCount = 25
 TimerBar.Fatigue.GMLevel = 4

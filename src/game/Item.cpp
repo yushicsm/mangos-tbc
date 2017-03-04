@@ -92,7 +92,7 @@ void AddItemsSetItem(Player* player, Item* item)
         {
             if (!eff->spells[y])                            // free slot
             {
-                SpellEntry const* spellInfo = sSpellStore.LookupEntry(set->spells[x]);
+                SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(set->spells[x]);
                 if (!spellInfo)
                 {
                     sLog.outError("WORLD: unknown spell id %u in items set %u effects", set->spells[x], setid);
@@ -241,6 +241,13 @@ Item::Item()
     m_container = nullptr;
     mb_in_trade = false;
     m_lootState = ITEM_LOOT_NONE;
+    m_enchantEffectModifier = nullptr;
+}
+
+Item::~Item()
+{
+    if(m_enchantEffectModifier)
+        GetOwner()->AddSpellMod(m_enchantEffectModifier, false);
 }
 
 bool Item::Create(uint32 guidlow, uint32 itemid, Player const* owner)
@@ -546,7 +553,7 @@ void Item::DeleteFromDB()
     stmt.PExecute(GetGUIDLow());
 }
 
-void Item::DeleteFromInventoryDB()
+void Item::DeleteFromInventoryDB() const
 {
     static SqlStatementID delInv ;
 
@@ -564,7 +571,7 @@ Player* Item::GetOwner()const
     return sObjectMgr.GetPlayer(GetOwnerGuid());
 }
 
-uint32 Item::GetSkill()
+uint32 Item::GetSkill() const
 {
     const static uint32 item_weapon_skills[MAX_ITEM_SUBCLASS_WEAPON] =
     {
@@ -601,7 +608,7 @@ uint32 Item::GetSkill()
     }
 }
 
-uint32 Item::GetSpell()
+uint32 Item::GetSpell() const
 {
     ItemPrototype const* proto = GetProto();
 
@@ -896,7 +903,7 @@ bool Item::IsFitToSpellRequirements(SpellEntry const* spellInfo) const
     return true;
 }
 
-bool Item::IsTargetValidForItemUse(Unit* pUnitTarget)
+bool Item::IsTargetValidForItemUse(Unit* pUnitTarget) const
 {
     ItemRequiredTargetMapBounds bounds = sObjectMgr.GetItemRequiredTargetMapBounds(GetProto()->ItemId);
 
@@ -1018,10 +1025,17 @@ bool Item::IsLimitedToAnotherMapOrZone(uint32 cur_mapId, uint32 cur_zoneId) cons
     return proto && ((proto->Map && proto->Map != cur_mapId) || (proto->Area && proto->Area != cur_zoneId));
 }
 
+void Item::SetEnchantmentModifier(SpellModifier * mod)
+{
+    if(m_enchantEffectModifier)
+        GetOwner()->AddSpellMod(m_enchantEffectModifier, false);
+    m_enchantEffectModifier = mod;
+}
+
 // Though the client has the information in the item's data field,
 // we have to send SMSG_ITEM_TIME_UPDATE to display the remaining
 // time.
-void Item::SendTimeUpdate(Player* owner)
+void Item::SendTimeUpdate(Player* owner) const
 {
     uint32 duration = GetUInt32Value(ITEM_FIELD_DURATION);
     if (!duration)
@@ -1030,7 +1044,7 @@ void Item::SendTimeUpdate(Player* owner)
     WorldPacket data(SMSG_ITEM_TIME_UPDATE, (8 + 4));
     data << ObjectGuid(GetObjectGuid());
     data << uint32(duration);
-    owner->GetSession()->SendPacket(&data);
+    owner->GetSession()->SendPacket(data);
 }
 
 Item* Item::CreateItem(uint32 item, uint32 count, Player const* player, uint32 randomPropertyId)

@@ -41,6 +41,7 @@ struct GameObjectInfo
     char*   castBarCaption;
     uint32  faction;
     uint32  flags;
+    uint32  ExtraFlags;
     float   size;
     union                                                   // different GO types have different data field
     {
@@ -362,6 +363,20 @@ struct GameObjectInfo
         } raw;
     };
 
+    union
+    {
+        //6 GAMEOBJECT_TYPE_TRAP
+        struct
+        {
+            uint32 triggerOn;
+        } trapCustom;
+
+        struct
+        {
+            uint32 data[1];
+        } rawCustom;
+    };
+
     uint32 MinMoneyLoot;
     uint32 MaxMoneyLoot;
     uint32 ScriptId;
@@ -552,6 +567,11 @@ enum CapturePointSliderValue
     CAPTURE_SLIDER_MIDDLE           = 50                    // middle
 };
 
+enum GameobjectExtraFlags
+{
+    GAMEOBJECT_EXTRA_FLAG_CUSTOM_ANIM_ON_USE = 0x00000001,    // GO that plays custom animation on usage
+};
+
 class Unit;
 class GameObjectModel;
 struct GameObjectDisplayInfoEntry;
@@ -584,10 +604,10 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
         // overwrite WorldObject function for proper name localization
         const char* GetNameForLocaleIdx(int32 locale_idx) const override;
 
-        void SaveToDB();
-        void SaveToDB(uint32 mapid, uint8 spawnMask);
+        void SaveToDB() const;
+        void SaveToDB(uint32 mapid, uint8 spawnMask) const;
         bool LoadFromDB(uint32 guid, Map* map);
-        void DeleteFromDB();
+        void DeleteFromDB() const;
 
         void SetOwnerGuid(ObjectGuid ownerGuid)
         {
@@ -694,19 +714,19 @@ class MANGOS_DLL_SPEC GameObject : public WorldObject
         bool IsHostileTo(Unit const* unit) const override;
         bool IsFriendlyTo(Unit const* unit) const override;
 
-        void SummonLinkedTrapIfAny();
-        void TriggerLinkedGameObject(Unit* target);
+        void SummonLinkedTrapIfAny() const;
+        void TriggerLinkedGameObject(Unit* target) const;
 
         bool isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const override;
 
         bool IsCollisionEnabled() const;                    // Check if a go should collide. Like if a door is closed
 
-        GameObject* LookupFishingHoleAround(float range);
+        GameObject* LookupFishingHoleAround(float range) const;
 
         void SetCapturePointSlider(float value, bool isLocked);
         float GetCapturePointSliderValue() const { return m_captureSlider; }
 
-        float GetInteractionDistance();
+        float GetInteractionDistance() const;
 
         GridReference<GameObject>& GetGridRef() { return m_gridRef; }
 

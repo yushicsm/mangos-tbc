@@ -84,7 +84,7 @@ struct boss_razorgoreAI : public ScriptedAI
         DoScriptText(SAY_DEATH, m_creature);
     }
 
-    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage) override
+    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage, DamageEffectType /*damagetype*/) override
     {
         if (uiDamage < m_creature->GetHealth())
             return;
@@ -139,7 +139,7 @@ struct boss_razorgoreAI : public ScriptedAI
                     }
 
                     if (Creature* pOrbTrigger = m_pInstance->GetSingleCreatureFromStorage(NPC_BLACKWING_ORB_TRIGGER))
-                        pOrbTrigger->CastSpell(m_creature, SPELL_POSSESS, false);
+                        pOrbTrigger->CastSpell(m_creature, SPELL_POSSESS, TRIGGERED_NONE);
                     m_uiIntroVisualTimer = 0;
                 }
                 else

@@ -126,7 +126,7 @@ struct npc_tapoke_slim_jahnAI : public npc_escortAI, private DialogueHelper
             pSummoned->AI()->AttackStart(pPlayer);
     }
 
-    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage) override
+    void DamageTaken(Unit* /*pDoneBy*/, uint32& uiDamage, DamageEffectType /*damagetype*/) override
     {
         if (!HasEscortState(STATE_ESCORT_ESCORTING))
             return;
@@ -207,7 +207,7 @@ bool QuestAccept_npc_mikhail(Player* pPlayer, Creature* pCreature, const Quest* 
             return false;
 
         if (!pSlim->HasAura(SPELL_STEALTH))
-            pSlim->CastSpell(pSlim, SPELL_STEALTH, true);
+            pSlim->CastSpell(pSlim, SPELL_STEALTH, TRIGGERED_OLD_TRIGGERED);
 
         pCreature->AI()->SendAIEvent(AI_EVENT_START_ESCORT, pPlayer, pSlim, pQuest->GetQuestId());
         return true;

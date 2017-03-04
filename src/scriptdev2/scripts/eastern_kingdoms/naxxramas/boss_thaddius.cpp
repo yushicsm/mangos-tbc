@@ -245,7 +245,7 @@ bool EffectDummyNPC_spell_thaddius_encounter(Unit* /*pCaster*/, uint32 uiSpellId
                     return true;
                 // remove Stun and then Cast
                 pCreatureTarget->RemoveAurasDueToSpell(SPELL_THADIUS_SPAWN);
-                pCreatureTarget->CastSpell(pCreatureTarget, SPELL_THADIUS_LIGHTNING_VISUAL, false);
+                pCreatureTarget->CastSpell(pCreatureTarget, SPELL_THADIUS_LIGHTNING_VISUAL, TRIGGERED_NONE);
             }
             return true;
         case SPELL_THADIUS_LIGHTNING_VISUAL:
@@ -588,7 +588,7 @@ struct boss_thaddiusAddsAI : public ScriptedAI
         DoMeleeAttackIfReady();
     }
 
-    void DamageTaken(Unit* pKiller, uint32& uiDamage) override
+    void DamageTaken(Unit* pKiller, uint32& uiDamage, DamageEffectType /*damagetype*/) override
     {
         if (uiDamage < m_creature->GetHealth())
             return;

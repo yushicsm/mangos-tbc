@@ -110,7 +110,7 @@ struct npc_calvin_montagueAI : public ScriptedAI
         AttackStart(pAttacker);
     }
 
-    void DamageTaken(Unit* pDoneBy, uint32& uiDamage) override
+    void DamageTaken(Unit* pDoneBy, uint32& uiDamage, DamageEffectType /*damagetype*/) override
     {
         if (uiDamage > m_creature->GetHealth() || ((m_creature->GetHealth() - uiDamage) * 100 / m_creature->GetMaxHealth() < 15))
         {
@@ -147,7 +147,7 @@ struct npc_calvin_montagueAI : public ScriptedAI
                     if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_playerGuid))
                         pPlayer->AreaExploredOrEventHappens(QUEST_590);
 
-                    m_creature->CastSpell(m_creature, SPELL_DRINK, true);
+                    m_creature->CastSpell(m_creature, SPELL_DRINK, TRIGGERED_OLD_TRIGGERED);
                     ++m_uiPhase;
                     break;
                 case 3:
