@@ -25,6 +25,7 @@
 #include "ScriptMgr.h"
 #include "movement/MoveSplineInit.h"
 #include "movement/MoveSpline.h"
+#include "CPlayer.h"
 
 #include <cassert>
 

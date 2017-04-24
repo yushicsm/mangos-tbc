@@ -28,6 +28,7 @@
 #include "WaypointMovementGenerator.h"
 #include "MapPersistentStateMgr.h"
 #include "ObjectMgr.h"
+#include "CPlayer.h"
 
 #define MOVEMENT_PACKET_TIME_DELAY 0
 
@@ -276,9 +277,14 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
     if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->IsTaxiFlying())
         plMover->HandleFall(movementInfo);
 
+
+    if (plMover)
+        plMover->ToCPlayer()->HandleAntiCheat(movementInfo, opcode);
+
     // Remove auras that should be removed at landing on ground or water
     if (opcode == MSG_MOVE_FALL_LAND || opcode == MSG_MOVE_START_SWIM)
         mover->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_LANDING); // Parachutes
+
 
     /* process position-change */
     HandleMoverRelocation(movementInfo);
@@ -515,7 +521,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
     {
         // transports size limited
         // (also received at zeppelin/lift leave by some reason with t_* as absolute in continent coordinates, can be safely skipped)
-        if (movementInfo.GetTransportPos()->x > 50 || movementInfo.GetTransportPos()->y > 50 || movementInfo.GetTransportPos()->z > 100)
+        if (std::abs(movementInfo.GetTransportPos()->x) > 60 || std::abs(movementInfo.GetTransportPos()->y) > 50 || std::abs(movementInfo.GetTransportPos()->z) > 100)
             return false;
 
         if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->x + movementInfo.GetTransportPos()->x, movementInfo.GetPos()->y + movementInfo.GetTransportPos()->y,

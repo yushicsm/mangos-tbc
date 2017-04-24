@@ -88,3 +88,12 @@ cmake_install.cmake
 
 # recastnavigation directory needs exception
 !dep/recastnavigation/RecastDemo/Build/
+*.opendb
+
+dep/lib/win32_debug/*
+dep/lib/x64_Debug/*
+win/mangosdVC140.VC.db
+
+win/enc_temp_folder/*
+
+src/game/LuaEngine/

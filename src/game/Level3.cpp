@@ -56,6 +56,7 @@
 #include "AuctionHouseBot/AuctionHouseBot.h"
 #include "SQLStorages.h"
 #include "LootMgr.h"
+#include "CPlayer.h"
 
 static uint32 ahbotQualityIds[MAX_AUCTION_QUALITY] =
 {
@@ -1314,6 +1315,11 @@ bool ChatHandler::HandleCooldownCommand(char* args)
     if (!*args)
     {
         target->RemoveAllSpellCooldown();
+
+        WorldPacket data(SMSG_COOLDOWN_CHEAT, 8);
+        data << target->GetObjectGuid();
+        m_session->SendPacket(data);
+
         PSendSysMessage(LANG_REMOVEALL_COOLDOWN, tNameLink.c_str());
     }
     else
@@ -5487,6 +5493,8 @@ bool ChatHandler::HandleGMFlyCommand(char* args)
         target = m_session->GetPlayer();
 
     target->SetCanFly(value);
+    target->ToCPlayer()->SetGMFly(value);
+
     PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, GetNameLink(target).c_str(), args);
     return true;
 }

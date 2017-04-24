@@ -1148,6 +1148,7 @@ inline bool IsSpellSpecificUniquePerCaster(SpellSpecific specific)
         case SPELL_SOUL_CAPTURE:
         case SPELL_CORRUPTION:
             return true;
+        default: break;
     }
     return false;
 }
@@ -1172,6 +1173,7 @@ inline bool IsSpellSpecificUniquePerTarget(SpellSpecific specific)
         case SPELL_DRINK:
         case SPELL_FOOD_AND_DRINK:
             return true;
+        default: break;
     }
     return false;
 }
@@ -1204,6 +1206,7 @@ inline bool IsSpellSpecificIdentical(SpellSpecific specific, SpellSpecific speci
             return specific2 == SPELL_FOOD ||
                    specific2 == SPELL_DRINK ||
                    specific2 == SPELL_FOOD_AND_DRINK;
+        default: break;
     }
     return false;
 }

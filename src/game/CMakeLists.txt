@@ -19,6 +19,7 @@
 set(LIBRARY_NAME game)
 
 add_definitions(-DDT_POLYREF64)
+add_definitions(-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0)
 
 # include external dependencies libs headers (warnings disabled)
 include_directories(SYSTEM
@@ -71,6 +72,36 @@ set(SRC_GRP_PLAYERBOT
 	playerbot/PlayerbotWarriorAI.cpp
 	playerbot/PlayerbotWarriorAI.h
 )
+
+set(SRC_GRP_CUSTOM
+    AntiCheat.cpp
+    AntiCheat_fly.cpp
+    AntiCheat_fly.h
+    AntiCheat_gravity.cpp
+    AntiCheat_gravity.h
+    AntiCheat.h
+    AntiCheat_jump.cpp
+    AntiCheat_jump.h
+    AntiCheat_nofall.cpp
+    AntiCheat_nofall.h
+    AntiCheat_speed.cpp
+    AntiCheat_speed.h
+    AntiCheat_teleport.cpp
+    AntiCheat_teleport.h
+    AntiCheat_test.cpp
+    AntiCheat_test.h
+    AntiCheat_tptoplane.cpp
+    AntiCheat_tptoplane.h
+    AntiCheat_wallclimb.cpp
+    AntiCheat_wallclimb.h
+    AntiCheat_walljump.cpp
+    AntiCheat_walljump.h
+    AntiCheat_waterwalking.cpp
+    AntiCheat_waterwalking.h
+    CPlayer.cpp
+    CPlayer.h
+)
+
 set(SRC_GRP_AI
     AI/AggressorAI.cpp
     AI/AggressorAI.h
@@ -435,6 +466,7 @@ set(SRC_GRP_WORLD_HANDLERS
 
 set(LIBRARY_SRCS
     ${SRC_GRP_PLAYERBOT}
+    ${SRC_GRP_CUSTOM}
     ${SRC_GRP_AI}
     ${SRC_GRP_AHBOT}
     ${SRC_GRP_BATTLEGROUND}
@@ -456,6 +488,13 @@ source_group("PlayerBot"
   FILES
     ${SRC_GRP_PLAYERBOT}
 )
+
+source_group("Custom"
+  FILES
+    ${SRC_GRP_CUSTOM}
+)
+
+
 source_group("AI"
   FILES
     ${SRC_GRP_AI}

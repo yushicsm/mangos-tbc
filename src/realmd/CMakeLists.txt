@@ -38,6 +38,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/src/shared
   ${MYSQL_INCLUDE_DIR}
+  ${OPENSSL_INCLUDE_DIR}
 )
 
 add_executable(${EXECUTABLE_NAME}
@@ -92,3 +93,5 @@ install(FILES realmd.conf.dist.in DESTINATION ${CONF_DIR} RENAME realmd.conf.dis
 if(WIN32 AND MSVC)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/\${BUILD_TYPE}/${EXECUTABLE_NAME}.pdb DESTINATION ${BIN_DIR} CONFIGURATIONS Debug)
 endif()
+
+add_definitions( -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} )
