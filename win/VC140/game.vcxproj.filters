@@ -165,7 +165,6 @@
     <Filter Include="AI">
       <UniqueIdentifier>{fec503db-493c-43c0-96dd-8c0321d71407}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\game\AccountMgr.cpp">
       <Filter>World/Handlers</Filter>
