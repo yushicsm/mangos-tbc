@@ -44,6 +44,7 @@
 #include "Chat.h"
 #include "SQLStorages.h"
 #include "PathFinder.h"
+#include "LuaEngine.h"
 
 extern pEffect SpellEffects[TOTAL_SPELL_EFFECTS];
 

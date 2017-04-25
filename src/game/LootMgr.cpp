@@ -26,6 +26,7 @@
 #include "DBCStores.h"
 #include "SQLStorages.h"
 #include "BattleGround/BattleGroundAV.h"
+#include "LuaEngine.h"
 #include "ItemEnchantmentMgr.h"
 
 INSTANTIATE_SINGLETON_1(LootMgr);
@@ -1899,6 +1900,7 @@ InventoryResult Loot::SendItem(Player* target, LootItem* lootItem)
             target->SendNewItem(newItem, uint32(lootItem->count), false, false, true);
 
             lootItem->lootedBy.insert(target->GetObjectGuid());     // mark looted by this target
+            sEluna->OnLootItem(target, newItem, lootItem->count, GetLootGuid());
 
             playerGotItem = true;
             m_isChanged = true;
@@ -2075,6 +2077,7 @@ void Loot::SendGold(Player* player)
             data << uint32(money_per_player);
 
             plr->GetSession()->SendPacket(data);
+            sEluna->OnLootMoney(plr, money_per_player);
         }
     }
     else
@@ -2086,6 +2089,7 @@ void Loot::SendGold(Player* player)
             if (Item* item = player->GetItemByGuid(m_guidTarget))
                 item->SetLootState(ITEM_LOOT_CHANGED);
         }
+        sEluna->OnLootMoney(player, m_gold);
     }
     m_gold = 0;
 

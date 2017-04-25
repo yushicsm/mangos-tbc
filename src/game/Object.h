@@ -67,6 +67,7 @@ class WorldPacket;
 class UpdateData;
 class WorldSession;
 class Creature;
+class GameObject;
 class Player;
 class Unit;
 class Group;
@@ -75,6 +76,7 @@ class UpdateMask;
 class InstanceData;
 class TerrainInfo;
 class TransportInfo;
+class ElunaEventProcessor;
 struct MangosStringLocale;
 class Loot;
 
@@ -245,6 +247,7 @@ class MANGOS_DLL_SPEC Object
 
         void SetInt32Value(uint16 index,        int32  value);
         void SetUInt32Value(uint16 index,       uint32  value);
+        void UpdateUInt32Value(uint16 index,    uint32  value);
         void SetUInt64Value(uint16 index, const uint64& value);
         void SetFloatValue(uint16 index,       float   value);
         void SetByteValue(uint16 index, uint8 offset, uint8 value);
@@ -466,9 +469,9 @@ class MANGOS_DLL_SPEC WorldObject : public Object
                 WorldObject* const m_obj;
         };
 
-        virtual ~WorldObject() {}
+        virtual ~WorldObject();
 
-        virtual void Update(uint32 /*update_diff*/, uint32 /*time_diff*/) {}
+        virtual void Update(uint32 update_diff, uint32 /*time_diff*/);
 
         void _Create(uint32 guidlow, HighGuid guidhigh);
 
@@ -623,7 +626,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void SetMap(Map* map);
         Map* GetMap() const { MANGOS_ASSERT(m_currMap); return m_currMap; }
         // used to check all object's GetMap() calls when object is not in world!
-        void ResetMap() { m_currMap = nullptr; }
+        void ResetMap();
 
         // obtain terrain data for map where this object belong...
         TerrainInfo const* GetTerrain() const;
@@ -632,6 +635,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void RemoveFromClientUpdateList() override;
         void BuildUpdateData(UpdateDataMapType&) override;
 
+        GameObject* SummonGameObject(uint32 id, float x, float y, float z, float angle, uint32 despwtime);
         Creature* SummonCreature(uint32 id, float x, float y, float z, float ang, TempSummonType spwtype, uint32 despwtime, bool asActiveObject = false, bool setRun = false);
 
         bool isActiveObject() const { return m_isActiveObject || m_viewPoint.hasViewers(); }
@@ -642,6 +646,8 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         // ASSERT print helper
         bool PrintCoordinatesError(float x, float y, float z, char const* descr) const;
 
+
+        ElunaEventProcessor* elunaEvents;
     protected:
         explicit WorldObject();
 

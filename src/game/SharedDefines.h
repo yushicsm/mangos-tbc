@@ -21,6 +21,9 @@
 
 #include "Platform/Define.h"
 
+#define CMANGOS
+#define TBC
+
 enum Gender
 {
     GENDER_MALE                        = 0,

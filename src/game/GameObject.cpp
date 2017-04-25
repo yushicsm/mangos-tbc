@@ -40,6 +40,7 @@
 #include "ScriptMgr.h"
 #include "vmap/GameObjectModel.h"
 #include "SQLStorages.h"
+#include "LuaEngine.h"
 
 GameObject::GameObject() : WorldObject(),
     m_model(nullptr),
@@ -78,6 +79,8 @@ GameObject::~GameObject()
 
 void GameObject::AddToWorld()
 {
+    bool inWorld = IsInWorld();
+
     ///- Register the gameobject for guid lookup
     if (!IsInWorld())
         GetMap()->GetObjectsStore().insert<GameObject>(GetObjectGuid(), (GameObject*)this);
@@ -89,6 +92,9 @@ void GameObject::AddToWorld()
 
     // After Object::AddToWorld so that for initial state the GO is added to the world (and hence handled correctly)
     UpdateCollisionState();
+
+    if (!inWorld)
+        sEluna->OnAddToWorld(this);
 }
 
 void GameObject::RemoveFromWorld()
@@ -96,6 +102,8 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+        sEluna->OnRemoveFromWorld(this);
+
         // Notify the outdoor pvp script
         if (OutdoorPvP* outdoorPvP = sOutdoorPvPMgr.GetScript(GetZoneId()))
             outdoorPvP->HandleGameObjectRemove(this);
@@ -119,6 +127,11 @@ void GameObject::RemoveFromWorld()
     }
 
     Object::RemoveFromWorld();
+}
+
+void GameObject::CleanupsBeforeDelete()
+{
+    WorldObject::CleanupsBeforeDelete();
 }
 
 bool GameObject::Create(uint32 guidlow, uint32 name_id, Map* map, float x, float y, float z, float ang, float rotation0, float rotation1, float rotation2, float rotation3, uint32 animprogress, GOState go_state)
@@ -185,6 +198,8 @@ bool GameObject::Create(uint32 guidlow, uint32 name_id, Map* map, float x, float
             break;
     }
 
+    sEluna->OnSpawn(this);
+
     // Notify the battleground or outdoor pvp script
     if (map->IsBattleGroundOrArena())
         ((BattleGroundMap*)map)->GetBG()->HandleGameObjectCreate(this);
@@ -207,6 +222,9 @@ void GameObject::Update(uint32 update_diff, uint32 p_time)
         //((Transport*)this)->Update(p_time);
         return;
     }
+
+    // used by eluna
+    sEluna->UpdateAI(this, update_diff);
 
     switch (m_lootState)
     {
@@ -1806,12 +1824,14 @@ bool GameObject::IsFriendlyTo(Unit const* unit) const
 void GameObject::SetLootState(LootState state)
 {
     m_lootState = state;
+    sEluna->OnLootStateChanged(this, state);
     UpdateCollisionState();
 }
 
 void GameObject::SetGoState(GOState state)
 {
     SetByteValue(GAMEOBJECT_STATE, 0, state);
+    sEluna->OnGameObjectStateChanged(this, state);
     UpdateCollisionState();
 }
 

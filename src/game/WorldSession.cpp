@@ -36,6 +36,7 @@
 #include "BattleGround/BattleGroundMgr.h"
 #include "SocialMgr.h"
 #include "LootMgr.h"
+#include "LuaEngine.h"
 
 // Playerbot mod
 #include "playerbot/PlayerbotMgr.h"
@@ -503,6 +504,9 @@ void WorldSession::LogoutPlayer(bool Save)
         // Playerbot - remember player GUID for update SQL below
         uint32 guid = _player->GetGUIDLow();
 
+        ///- used by eluna
+        sEluna->OnLogout(_player);
+
         ///- Remove the player from the world
         // the player may not be in the world when logging out
         // e.g if he got disconnected during a transfer to another map
@@ -742,6 +746,8 @@ void WorldSession::SendTransferAborted(uint32 mapid, uint8 reason, uint8 arg) co
 
 void WorldSession::ExecuteOpcode(OpcodeHandler const& opHandle, WorldPacket &packet)
 {
+    if (!sEluna->OnPacketReceive(this, packet))
+        return;
     // need prevent do internal far teleports in handlers because some handlers do lot steps
     // or call code that can do far teleports in some conditions unexpectedly for generic way work code
     if (_player)

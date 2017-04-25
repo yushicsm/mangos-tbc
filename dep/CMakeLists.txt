@@ -19,6 +19,7 @@
 # disable warnings for dependencies
 add_compile_options(-w)
 
+add_subdirectory(lualib)
 add_subdirectory(recastnavigation)
 add_subdirectory(src)
 if (BUILD_VMAP_EXTRACTOR)

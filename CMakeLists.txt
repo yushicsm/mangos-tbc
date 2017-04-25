@@ -95,7 +95,7 @@ endif()
 set(CMAKE_INSTALL_RPATH ../${LIBS_FOLDER_NAME})
 set(CMAKE_INSTALL_NAME_DIR ${LIBS_DIR})
 
-find_package(Boost REQUIRED COMPONENTS system program_options thread)
+find_package(Boost REQUIRED COMPONENTS system program_options thread filesystem)
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})

@@ -118,9 +118,177 @@
     <ClCompile Include="..\..\src\game\Opcodes.cpp" />
     <ClCompile Include="..\..\src\game\PathFinder.cpp" />
     <ClCompile Include="..\..\src\game\pchdef.cpp" />
-<<<<<<< HEAD
     <ClCompile Include="..\..\src\game\CharacterDatabaseCleaner.cpp">
       <Filter>Tool</Filter>
+    <Filter Include="World/Handlers">
+      <UniqueIdentifier>{d75ae330-80de-4aaf-8274-ae85f49dbcd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Motion generators">
+      <UniqueIdentifier>{7ade1743-efdc-47a9-86a5-77ab3ad233a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object">
+      <UniqueIdentifier>{1ea64f0d-ee7e-492e-8516-2f2c5be80a2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Server">
+      <UniqueIdentifier>{af0d7b92-aa88-4870-bf29-5f9856a954d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Chat Commands">
+      <UniqueIdentifier>{4087621b-fd53-4335-933f-ab29141b4c9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tool">
+      <UniqueIdentifier>{efeae208-8789-4329-889a-b50baa18c19a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="References">
+      <UniqueIdentifier>{64bb42b8-e7ba-4247-b337-492f644daeeb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AhBot">
+      <UniqueIdentifier>{481ad376-5cba-439d-af8c-2ef73de2ed8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vmaps">
+      <UniqueIdentifier>{948284d3-9d89-4609-8cdd-28a213edb53e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Movement">
+      <UniqueIdentifier>{0ac140f9-89c1-4830-b673-514c5e8b4d37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OutdoorPvP">
+      <UniqueIdentifier>{c25f76ed-c7d6-495a-a647-1f97b1261fa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="BattleGround">
+      <UniqueIdentifier>{0af4d063-6d01-4546-a429-59bd828ab270}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LuaEngine">
+      <UniqueIdentifier>{b0544e5e-62aa-4ec5-9ec2-c80f4e12925c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LuaEngine\Methods">
+      <UniqueIdentifier>{ee816624-bdb0-47a5-8efc-f127b827f609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AI">
+      <UniqueIdentifier>{fec503db-493c-43c0-96dd-8c0321d71407}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\game\AccountMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ArenaTeamHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\AuctionHouseHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\Channel.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ChannelHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ChannelMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\CharacterHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\Chat.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ChatHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\CombatHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\DuelHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GameEventMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GMTicketHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GossipDef.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GridMap.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GridNotifiers.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GridStates.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\Group.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GroupHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GuildHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\GuildMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\InstanceData.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ItemHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LFGHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LootHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\Mail.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MailHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\Map.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MapManager.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MapPersistentStateMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MassMailMgr.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MiscHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\MovementHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\NPCHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\ObjectGridLoader.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\PetHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\PetitionsHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\PoolManager.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\QueryHandler.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\QuestDef.cpp">
+      <Filter>World/Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\QuestHandler.cpp">
+      <Filter>World/Handlers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\game\PathFinder.cpp">
       <Filter>Motion generators</Filter>
@@ -257,6 +425,57 @@
     <ClCompile Include="..\..\src\game\AddonHandler.cpp">
       <Filter>World/Handlers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\BattleGroundHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\CreatureHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\ElunaEventMgr.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\ElunaUtility.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\GameObjectHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\GroupHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\GuildHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\ItemHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\LuaEngine.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\LuaFunctions.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\PlayerHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\ServerHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\GossipHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\PacketHooks.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\ElunaInstanceAI.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\InstanceHooks.cpp">
+      <Filter>LuaEngine\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\game\LuaEngine\lmarshal.cpp">
+      <Filter>LuaEngine</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\game\AI\AggressorAI.cpp">
       <Filter>AI</Filter>
     </ClCompile>
@@ -293,7 +512,6 @@
     <ClCompile Include="..\..\src\game\AI\GuardianAI.cpp">
       <Filter>AI</Filter>
     </ClCompile>
-=======
     <ClCompile Include="..\..\src\game\Pet.cpp" />
     <ClCompile Include="..\..\src\game\PetHandler.cpp" />
     <ClCompile Include="..\..\src\game\PetitionsHandler.cpp" />
@@ -354,7 +572,6 @@
     <ClCompile Include="..\..\src\game\vmap\VMapManager2.cpp" />
     <ClCompile Include="..\..\src\game\vmap\WorldModel.cpp" />
     <ClCompile Include="..\..\src\game\AntiCheat_nofall.cpp" />
->>>>>>> origin/b16
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\game\AccountMgr.h" />
@@ -473,7 +690,6 @@
     <ClInclude Include="..\..\src\game\Path.h" />
     <ClInclude Include="..\..\src\game\PathFinder.h" />
     <ClInclude Include="..\..\src\game\pchdef.h" />
-<<<<<<< HEAD
     <ClInclude Include="..\..\src\game\CharacterDatabaseCleaner.h">
       <Filter>Tool</Filter>
     </ClInclude>
@@ -633,6 +849,93 @@
     <ClInclude Include="..\..\src\game\AddonHandler.h">
       <Filter>World/Handlers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\AuraMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\BattleGroundMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\CorpseMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\CreatureMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaCreatureAI.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaEventMgr.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaIncludes.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaQueryMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaTemplate.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaUtility.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\GameObjectMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\GlobalMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\GroupMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\GuildMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\HookHelpers.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\Hooks.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ItemMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\LuaEngine.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\MapMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ObjectMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\PlayerMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\QuestMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\SpellMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\UnitMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\WorldObjectMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\WorldPacketMethods.h">
+      <Filter>LuaEngine\Methods</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\BindingMap.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\ElunaInstanceAI.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\game\LuaEngine\lmarshal.h">
+      <Filter>LuaEngine</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\game\AI\AggressorAI.h">
       <Filter>AI</Filter>
     </ClInclude>
@@ -675,7 +978,6 @@
     <ClInclude Include="..\..\src\game\AI\GuardianAI.h">
       <Filter>AI</Filter>
     </ClInclude>
-=======
     <ClInclude Include="..\..\src\game\Pet.h" />
     <ClInclude Include="..\..\src\game\Player.h" />
     <ClInclude Include="..\..\src\game\PlayerDump.h" />
@@ -735,6 +1037,5 @@
     <ClInclude Include="..\..\src\game\vmap\VMapTools.h" />
     <ClInclude Include="..\..\src\game\vmap\WorldModel.h" />
     <ClInclude Include="..\..\src\game\AntiCheat_nofall.h" />
->>>>>>> origin/b16
   </ItemGroup>
 </Project>
